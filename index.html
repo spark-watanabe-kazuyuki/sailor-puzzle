@@ -1229,6 +1229,51 @@
       white-space: nowrap;
     }
 
+    .video-tap-skip-hint {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(255, 255, 255, 0.78);
+      background: rgba(0, 0, 0, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      pointer-events: none;
+      animation: tapHintPulse 1.8s ease-in-out infinite;
+      z-index: 10001;
+    }
+    @keyframes tapHintPulse {
+      0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(0.96); }
+      50% { opacity: 0.95; transform: translateX(-50%) scale(1.02); }
+    }
+
+    /* 操作一定時間なし時のヒント点滅アニメーション */
+    @keyframes hintPulseGlow {
+      0% {
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 2px #fff200);
+      }
+      50% {
+        transform: scale(1.08);
+        filter: brightness(1.35) drop-shadow(0 0 10px #fff200) drop-shadow(0 0 16px #ff9ff3);
+      }
+      100% {
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 2px #fff200);
+      }
+    }
+    .board-cell.hint-pulse {
+      animation: hintPulseGlow 1.2s ease-in-out infinite alternate !important;
+      z-index: 20 !important;
+      outline: 2.5px solid #fff200 !important;
+      outline-offset: 1px;
+      border-radius: 8px;
+    }
+
     /* ムービー再生中のスキップボタン */
     .btn-skip-video {
       position: absolute;
@@ -1844,9 +1889,20 @@
     }
 
     .diff-btn-main {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 900;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .diff-btn-sub-label {
+      font-size: 12px;
+      font-weight: bold;
+      opacity: 0.95;
+      letter-spacing: 0.5px;
     }
 
     .diff-btn-sub {
@@ -1984,6 +2040,16 @@
       color: #ffffff;
       box-shadow: 0 2px 12px rgba(232, 67, 147, 0.6);
     }
+    #tab-btn-stages.active {
+      background: linear-gradient(90deg, #0984e3, #6c5ce7);
+      border-color: #74b9ff;
+      box-shadow: 0 2px 12px rgba(9, 132, 227, 0.65);
+    }
+    #tab-btn-upgrades.active {
+      background: linear-gradient(90deg, #e84393, #fd79a8);
+      border-color: #fff200;
+      box-shadow: 0 2px 14px rgba(232, 67, 147, 0.7);
+    }
 
     .story-tab-content {
       flex: 1;
@@ -1992,6 +2058,21 @@
       flex-direction: column;
       gap: 8px;
       padding-right: 4px;
+    }
+
+    #tab-content-stages {
+      background: radial-gradient(circle at 50% 15%, rgba(12, 18, 38, 0.65) 0%, rgba(5, 7, 18, 0.88) 100%);
+      border-radius: 12px;
+      padding: 8px 6px;
+      border: 1px solid rgba(116, 185, 255, 0.28);
+    }
+
+    #tab-content-upgrades {
+      background: radial-gradient(circle at 50% 25%, rgba(232, 67, 147, 0.16) 0%, rgba(108, 92, 231, 0.14) 55%, rgba(16, 14, 34, 0.85) 100%);
+      border-radius: 12px;
+      padding: 8px 6px;
+      border: 1px solid rgba(255, 159, 243, 0.35);
+      box-shadow: inset 0 0 20px rgba(232, 67, 147, 0.15);
     }
 
     .story-tab-content.hidden {
@@ -2242,27 +2323,37 @@
       color: #ffeaa7;
     }
 
-    /* 育成カード群 */
+    /* 育成カード群（シルバーミレニアム・クリスタル聖堂風） */
     .upgrade-section-label {
       font-size: 11px;
       font-weight: 900;
-      color: #feca57;
-      background: rgba(254, 202, 87, 0.14);
-      border-left: 3px solid #feca57;
-      padding: 4px 8px;
-      border-radius: 4px;
-      margin-top: 2px;
+      color: #ffffff;
+      background: linear-gradient(90deg, rgba(232, 67, 147, 0.45) 0%, rgba(254, 202, 87, 0.25) 100%);
+      border-left: 4px solid #fff200;
+      border-bottom: 1px solid rgba(255, 242, 0, 0.3);
+      padding: 5px 10px;
+      border-radius: 6px;
+      margin-top: 4px;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 4px #000;
     }
 
     .upgrade-card {
-      background: rgba(255, 255, 255, 0.07);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 10px;
-      padding: 7px 10px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(232, 67, 147, 0.14) 100%);
+      border: 1px solid rgba(255, 159, 243, 0.5);
+      border-radius: 12px;
+      padding: 8px 11px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), inset 0 0 8px rgba(255, 159, 243, 0.1);
+      transition: all 0.15s ease;
+    }
+
+    .upgrade-card:hover {
+      border-color: #fff200;
+      box-shadow: 0 0 12px rgba(254, 202, 87, 0.4);
     }
 
     .upgrade-info {
@@ -2284,16 +2375,24 @@
     }
 
     .upgrade-buy-btn {
-      background: linear-gradient(90deg, #0984e3, #6c5ce7);
-      border: 1px solid #feca57;
+      background: linear-gradient(90deg, #e84393, #fd79a8);
+      border: 1px solid #fff200;
       color: #ffffff;
       font-size: 11px;
       font-weight: 900;
-      padding: 5px 10px;
-      border-radius: 14px;
+      padding: 6px 12px;
+      border-radius: 16px;
       cursor: pointer;
-      min-width: 92px;
+      min-width: 96px;
       text-align: center;
+      box-shadow: 0 2px 10px rgba(232, 67, 147, 0.5);
+      transition: all 0.14s ease;
+    }
+
+    .upgrade-buy-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      filter: brightness(1.15);
+      box-shadow: 0 0 14px rgba(255, 242, 0, 0.7);
     }
 
     .upgrade-buy-btn:disabled {
@@ -2301,6 +2400,8 @@
       border-color: rgba(255, 255, 255, 0.2);
       color: #888;
       cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
     }
 
     .story-hub-footer {
@@ -3293,16 +3394,26 @@
       <div class="difficulty-select-box hidden view-fade-in" id="mode-select-box">
         <div class="difficulty-select-title">▼ プレイモードを選択 ▼</div>
         <button type="button" class="difficulty-btn tutorial-mode-btn" id="btn-select-tutorial">
-          <span class="diff-btn-main">🌙 TUTORIAL（ルナの遊び方教室）<span class="clear-badge-pill hidden" id="clear-badge-tutorial">✅ 習得済</span></span>
+          <span class="diff-btn-main">
+            🌙 TUTORIAL
+            <span class="diff-btn-sub-label">（ルナの遊び方教室）</span>
+            <span class="clear-badge-pill hidden" id="clear-badge-tutorial">✅ 習得済</span>
+          </span>
           <span class="diff-btn-sub">基本の3マッチから必殺技・合体技・お邪魔対策まで実戦レッスン！</span>
         </button>
         <button type="button" class="difficulty-btn story-mode-btn" id="btn-select-story">
-          <span class="diff-btn-main">📖 STORY MODE（全6章・戦士育成）</span>
+          <span class="diff-btn-main">
+            📖 STORY MODE
+            <span class="diff-btn-sub-label">（全6章・戦士育成）</span>
+          </span>
           <span class="diff-btn-sub">TVアニメ原作再現！仲間を集め、銀水晶を巡る決戦へ</span>
           <span class="mode-badge-stat" id="title-story-badge">STAGE 1 挑戦中 ／ 🌙 0</span>
         </button>
         <button type="button" class="difficulty-btn normal" id="btn-select-free">
-          <span class="diff-btn-main">⚔️ FREE BATTLE（フリーバトル）</span>
+          <span class="diff-btn-main">
+            ⚔️ FREE BATTLE
+            <span class="diff-btn-sub-label">（フリーバトル）</span>
+          </span>
           <span class="diff-btn-sub">EASY〜HELLのお好きな難易度で自由にバトル！</span>
         </button>
         <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
@@ -3316,19 +3427,31 @@
       <div class="difficulty-select-box hidden view-fade-in" id="free-diff-box">
         <div class="difficulty-select-title">▼ フリーバトル難易度選択 ▼</div>
         <button type="button" class="difficulty-btn easy" data-diff="easy">
-          <span class="diff-btn-main">🌱 EASY（かんたん）<span class="clear-badge-pill hidden" id="clear-badge-easy">✅ CLEAR</span></span>
+          <span class="diff-btn-main">
+            🌱 EASY <span class="diff-btn-sub-label">（かんたん）</span>
+            <span class="clear-badge-pill hidden" id="clear-badge-easy">✅ CLEAR</span>
+          </span>
           <span class="diff-btn-sub">👹【妖魔モルガ】敵HP 2200 / 味方HP 600 / 攻撃 6T毎・弱め</span>
         </button>
         <button type="button" class="difficulty-btn normal" data-diff="normal">
-          <span class="diff-btn-main">⚔️ NORMAL（ふつう）<span class="clear-badge-pill hidden" id="clear-badge-normal">✅ CLEAR</span></span>
+          <span class="diff-btn-main">
+            ⚔️ NORMAL <span class="diff-btn-sub-label">（ふつう）</span>
+            <span class="clear-badge-pill hidden" id="clear-badge-normal">✅ CLEAR</span>
+          </span>
           <span class="diff-btn-sub">⭐【四天王ネフライト】敵HP 3400 / 味方HP 500 / 攻撃 5T毎・標準</span>
         </button>
         <button type="button" class="difficulty-btn hard" data-diff="hard">
-          <span class="diff-btn-main">🔥 HARD（むずかしい）<span class="clear-badge-pill hidden" id="clear-badge-hard">✅ CLEAR</span></span>
+          <span class="diff-btn-main">
+            🔥 HARD <span class="diff-btn-sub-label">（むずかしい）</span>
+            <span class="clear-badge-pill hidden" id="clear-badge-hard">✅ CLEAR</span>
+          </span>
           <span class="diff-btn-sub">❄️【四天王筆頭クンツァイト】敵HP 4800 / 味方HP 420 / 攻撃 4T毎・激化</span>
         </button>
         <button type="button" class="difficulty-btn hell" id="btn-diff-hell" data-diff="hell">
-          <span class="diff-btn-main" id="btn-hell-main-text">💀 HELL（地獄・裏モード）<span class="clear-badge-pill hidden" id="clear-badge-hell">✅ CLEAR</span></span>
+          <span class="diff-btn-main" id="btn-hell-main-text">
+            💀 HELL <span class="diff-btn-sub-label">（地獄・裏モード）</span>
+            <span class="clear-badge-pill hidden" id="clear-badge-hell">✅ CLEAR</span>
+          </span>
           <span class="diff-btn-sub" id="btn-hell-sub-text">👿【スーパーベリル】敵HP 6800 / 味方HP 360 / 攻撃 3T毎・極限</span>
         </button>
         <button type="button" class="screen-back-btn" id="btn-diff-back-to-mode">◀ モード選択へ戻る</button>
@@ -3770,6 +3893,7 @@
     <button type="button" id="btn-skip-video" class="btn-skip-video">⏩ スキップ</button>
     <div id="special-banner">必殺技発動！</div>
     <video id="special-video" playsinline></video>
+    <div id="video-tap-skip-hint" class="video-tap-skip-hint">👆 画面タップでスキップ</div>
   </div>
 
   <script>
@@ -4828,7 +4952,7 @@
       if (isHellUnlocked) {
         btnDiffHellEl.classList.remove('locked-diff-btn');
         if (btnHellMainTextEl) {
-          btnHellMainTextEl.innerHTML = `💀 HELL（地獄・裏モード）<span class="clear-badge-pill ${saveData.clearedDiffs.hell ? '' : 'hidden'}" id="clear-badge-hell">✅ CLEAR</span>`;
+          btnHellMainTextEl.innerHTML = `💀 HELL <span class="diff-btn-sub-label">（地獄・裏モード）</span><span class="clear-badge-pill ${saveData.clearedDiffs.hell ? '' : 'hidden'}" id="clear-badge-hell">✅ CLEAR</span>`;
         }
         if (btnHellSubTextEl) {
           btnHellSubTextEl.textContent = '👿【スーパーベリル】敵HP 6800 / 味方HP 360 / 攻撃 3T毎・極限';
@@ -4836,7 +4960,7 @@
       } else {
         btnDiffHellEl.classList.add('locked-diff-btn');
         if (btnHellMainTextEl) {
-          btnHellMainTextEl.innerHTML = '💀 ???（🔒 HARDクリアで解放）';
+          btnHellMainTextEl.innerHTML = '💀 ??? <span class="diff-btn-sub-label">（🔒 HARDクリアで解放）</span>';
         }
         if (btnHellSubTextEl) {
           btnHellSubTextEl.textContent = 'HARD難易度をクリアすると解放される高難度裏モード';
@@ -6300,6 +6424,7 @@
       );
 
       isLocked = false;
+      startHintTimer();
       const tuxedoNote = waveObj.allowTuxedo ? '' : '（※この戦いはタキシード仮面救出なし！）';
       const singleNote = isSingleWaveMode ? '【単独WAVE周回】' : '';
       statusMessageEl.textContent = `⚔️${singleNote}【${waveObj.enemyName}】出現！ ${tuxedoNote}`;
@@ -6523,6 +6648,7 @@
         statusMessageEl.textContent = retrySameCondition
           ? `【${currentDifficulty.label}】${eName}（${currentEnemyHazard.icon}${currentEnemyHazard.name}）に最初から再挑戦！`
           : `【${currentDifficulty.label}】${eName}（${currentEnemyHazard.icon}${currentEnemyHazard.name}）が出現！ ドラッグで揃えよう！`;
+        startHintTimer();
       }
 
       if (retrySameCondition && initialBoardSnapshot.length === ROWS) {
@@ -6889,6 +7015,7 @@
     function handlePointerDown(e, r, c) {
       if (isLocked || isGameClear || !board[r][c]) return;
       e.preventDefault();
+      clearHintTimer();
 
       // 氷・鎖で動かせないブロックでも、★必殺技ブロックならクリックで説明ウィンドウを開けるようにする
       if (!canMoveBlock(r, c)) {
@@ -7046,6 +7173,7 @@
         renderBoard();
         await wait(180);
         isLocked = false;
+        startHintTimer();
         return;
       }
 
@@ -7130,6 +7258,7 @@
         isLocked = false;
         statusMessageEl.textContent = 'ブロックを上下左右にドラッグして入れ替えよう！';
         scheduleHideComboDamageDisplay(1100);
+        startHintTimer();
       }
     }
 
@@ -8558,6 +8687,7 @@
     async function handleGameClear() {
       isGameClear = true;
       isLocked = true;
+      clearHintTimer();
 
       // 🌙 チュートリアルモード修了処理
       if (gameMode === 'tutorial') {
@@ -8698,6 +8828,7 @@
 
           isGameClear = false;
           isLocked = false;
+          startHintTimer();
           const tuxNote = nextWave.allowTuxedo ? '' : '（※この戦いはタキシード仮面救出なし！）';
           statusMessageEl.textContent = `🔥 NEXT WAVE！【${nextWave.enemyName}】出現！💖 味方HP全回復！ ${tuxNote}`;
           return;
@@ -8958,6 +9089,7 @@
         gameoverDescEl.innerHTML = `味方のHPが0になりました…<br><small>（今回の敵タイプ：${currentEnemyHazard.icon}${currentEnemyHazard.name}使い）</small>`;
         btnBackTitleEl.textContent = '🏠 タイトルに戻る';
       }
+      clearHintTimer();
       gameoverScreenEl.classList.remove('hidden');
     }
 
@@ -9079,6 +9211,7 @@
     }
 
     // 動画カットイン再生の共通関数（centerBanner = true の場合は文字を画面中央に表示）
+    // （画面タップ・クリック、またはスキップボタンで即座にスキップ可能）
     function playCutinMovie(movieSrc, bannerText, centerBanner = false, forcePlay = false) {
       if (!forcePlay && saveData.settings && saveData.settings.playMovie === false && !centerBanner) {
         // 設定でムービーOFFの場合は動画をロードせず即座に完了
@@ -9093,6 +9226,7 @@
           finished = true;
 
           if (skipBtn) skipBtn.onclick = null;
+          videoOverlayEl.onclick = null;
           specialVideoEl.onended = null;
           specialVideoEl.onerror = null;
           specialVideoEl.pause();
@@ -9103,12 +9237,16 @@
           resolve();
         };
 
+        const handleTapSkip = (e) => {
+          if (e) e.stopPropagation();
+          finishMovie();
+        };
+
         if (skipBtn) {
-          skipBtn.onclick = (e) => {
-            if (e) e.stopPropagation();
-            finishMovie();
-          };
+          skipBtn.onclick = handleTapSkip;
         }
+        // 画面のどこをタップ・クリックしても即座にスキップ！
+        videoOverlayEl.onclick = handleTapSkip;
 
         specialBannerEl.textContent = bannerText || '';
         specialBannerEl.style.display = bannerText ? 'block' : 'none';
@@ -9136,6 +9274,97 @@
           });
         }
       });
+    }
+
+    // ===== 操作一定時間なし時のヒント機能 =====
+    let hintTimeoutId = null;
+    let currentHintCells = [];
+
+    // 盤面上のヒント点滅エフェクトを消去
+    function clearHintHighlight() {
+      if (currentHintCells && currentHintCells.length > 0) {
+        currentHintCells.forEach(pos => {
+          const cellEl = document.querySelector(`.board-cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
+          if (cellEl) cellEl.classList.remove('hint-pulse');
+        });
+        currentHintCells = [];
+      }
+    }
+
+    // ヒント待機タイマーをリセット＆ハイライト消去
+    function clearHintTimer() {
+      if (hintTimeoutId) {
+        clearTimeout(hintTimeoutId);
+        hintTimeoutId = null;
+      }
+      clearHintHighlight();
+    }
+
+    // 盤面上で有効なスワップ（マッチ成立または必殺技発動）が可能なペアを1組探索
+    function findAvailableMove() {
+      if (!board || board.length === 0 || !Array.isArray(board[0])) return null;
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const b1 = board[r][c];
+          if (!b1) continue;
+
+          // 1. 右隣とのスワップ判定
+          if (c + 1 < COLS) {
+            const b2 = board[r][c + 1];
+            if (b2) {
+              // ★必殺技を含むペアなら有効
+              if (b1.isSpecial || b2.isSpecial) {
+                return [{ r, c }, { r, c: c + 1 }];
+              }
+              // 通常スワップしてマッチ成立するか判定
+              swapBlocks(r, c, r, c + 1);
+              const matches = findMatchGroups();
+              swapBlocks(r, c, r, c + 1);
+              if (matches && matches.length > 0) {
+                return [{ r, c }, { r, c: c + 1 }];
+              }
+            }
+          }
+
+          // 2. 下隣とのスワップ判定
+          if (r + 1 < ROWS) {
+            const b2 = board[r + 1][c];
+            if (b2) {
+              // ★必殺技を含むペアなら有効
+              if (b1.isSpecial || b2.isSpecial) {
+                return [{ r, c }, { r: r + 1, c }];
+              }
+              // 通常スワップしてマッチ成立するか判定
+              swapBlocks(r, c, r + 1, c);
+              const matches = findMatchGroups();
+              swapBlocks(r, c, r + 1, c);
+              if (matches && matches.length > 0) {
+                return [{ r, c }, { r: r + 1, c }];
+              }
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    // 操作が途切れて5秒経過したらヒントを表示するタイマーを開始
+    function startHintTimer(delayMs = 5000) {
+      clearHintTimer();
+      if (isLocked || isGameClear || playerHp <= 0) return;
+
+      hintTimeoutId = setTimeout(() => {
+        if (isLocked || isGameClear || playerHp <= 0) return;
+        const move = findAvailableMove();
+        if (move && move.length === 2) {
+          currentHintCells = move;
+          move.forEach(pos => {
+            const cellEl = document.querySelector(`.board-cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
+            if (cellEl) cellEl.classList.add('hint-pulse');
+          });
+        }
+      }, delayMs);
     }
 
     // ===== デバッグモード（キーボードの D キーでいつでも開閉） =====
