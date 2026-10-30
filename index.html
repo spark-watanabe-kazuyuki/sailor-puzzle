@@ -3547,10 +3547,18 @@
         </button>
         <button type="button" class="difficulty-btn normal" id="btn-select-free">
           <span class="diff-btn-main">
-            ⚔️ FREE BATTLE
-            <span class="diff-btn-sub-label">（フリーバトル）</span>
+            ⚔️ 守護戦士の特訓
+            <span class="diff-btn-sub-label">（育成クリスタル獲得）</span>
           </span>
-          <span class="diff-btn-sub">EASY〜HELLのお好きな難易度で自由にバトル！</span>
+          <span class="diff-btn-sub">EASY〜CHAOSの特訓で経験値🌙を大量獲得！</span>
+        </button>
+        <button type="button" class="difficulty-btn hell" id="btn-select-endless" style="background: linear-gradient(90deg, #4834d4, #686de0); border-color: #f368e0;">
+          <span class="diff-btn-main">
+            🌌 ENDLESS RUSH
+            <span class="diff-btn-sub-label">（無限サバイバル）</span>
+            <span class="clear-badge-pill" id="badge-endless-record" style="background: rgba(0,0,0,0.55); border-color:#ffeaa7; color:#ffeaa7;">👑 BEST: 1</span>
+          </span>
+          <span class="diff-btn-sub">力尽きるまで強敵が無限襲来！ハイスコア＆到達WAVEを競え！</span>
         </button>
         <div style="display: flex; gap: 8px; width: 100%; margin-top: 4px;">
           <button type="button" class="screen-back-btn" id="btn-open-settings" style="flex:1; margin-top:0;">⚙️ オプション設定</button>
@@ -3614,6 +3622,26 @@
             <div class="setting-item-sub">OFFにするとカットイン動画を省略してテンポを最速にします</div>
           </div>
           <button type="button" class="setting-toggle-btn" id="cfg-play-movie">ON</button>
+        </div>
+        <div class="setting-item-row">
+          <div style="flex: 1; margin-right: 14px;">
+            <div class="setting-item-label">🎵 BGM 音量</div>
+            <div class="setting-item-sub">外部BGMファイル配置で再生（無音時はOFF）</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="cfg-bgm-volume" min="0" max="100" step="5" value="40" style="width: 100px; accent-color: #686de0; cursor: pointer;">
+            <span id="cfg-bgm-volume-label" style="font-size: 13px; font-weight: bold; color: #fff200; min-width: 38px;">40%</span>
+          </div>
+        </div>
+        <div class="setting-item-row">
+          <div style="flex: 1; margin-right: 14px;">
+            <div class="setting-item-label">🔔 効果音（SE）音量</div>
+            <div class="setting-item-sub">キラキラした月光内蔵シンセ音＆外部SE音源の音量</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="cfg-se-volume" min="0" max="100" step="5" value="70" style="width: 100px; accent-color: #f368e0; cursor: pointer;">
+            <span id="cfg-se-volume-label" style="font-size: 13px; font-weight: bold; color: #fff200; min-width: 38px;">70%</span>
+          </div>
         </div>
         <div class="setting-item-row">
           <div style="flex: 1; margin-right: 14px;">
@@ -3918,6 +3946,11 @@
     <!-- ゲームオーバー時の選択画面（ゲーム画面枠内のみに表示） -->
     <div id="gameover-screen" class="hidden">
       <h2 class="gameover-title">GAME OVER</h2>
+      <div id="gameover-endless-box" class="hidden" style="margin-bottom: 8px; background: rgba(0,0,0,0.55); border: 1px solid #a29bfe; border-radius: 8px; padding: 6px 10px;">
+        <div style="font-size: 13px; font-weight: 900; color: #ffeaa7;" id="go-endless-wave">🌌 到達 WAVE: 1</div>
+        <div style="font-size: 12px; color: #fd79a8;" id="go-endless-score">🏆 スコア: 0 点</div>
+        <div style="font-size: 11px; color: #55efc4; margin-top: 2px;" id="go-endless-best">👑 歴代最高: WAVE 1 (0点)</div>
+      </div>
       <div class="gameover-desc" id="gameover-desc">味方のHPが0になりました…</div>
       <div class="gameover-buttons">
         <button type="button" class="gameover-btn retry-same" id="btn-retry-same">🔄 同じ条件で最初からやり直す</button>
@@ -4174,6 +4207,315 @@
     ];
 
     let currentTrainingCourse = null;
+
+    // ==========================================
+    // 🎵 Web Audio API & 外部ファイル音源マネージャー
+    // ==========================================
+    class SoundManager {
+      constructor() {
+        this.ctx = null;
+        this.bgmAudio = null;
+        this.currentBgmKey = null;
+        this.bgmVolume = 0.4;
+        this.seVolume = 0.7;
+        this.bgmEnabled = true;
+        this.seEnabled = true;
+        this.externalAudioMap = new Map();
+      }
+
+      initContext() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            this.ctx = new AudioContextClass();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      setBgmVolume(val) {
+        this.bgmVolume = Math.max(0, Math.min(1, val));
+        if (this.bgmAudio) {
+          this.bgmAudio.volume = this.bgmVolume;
+        }
+      }
+
+      setSeVolume(val) {
+        this.seVolume = Math.max(0, Math.min(1, val));
+      }
+
+      playSe(key, options = {}) {
+        if (!this.seEnabled) return;
+        this.initContext();
+
+        // 外部ファイル（例: audio/se_match.mp3 または se_match.mp3）の確認と再生
+        if (this.externalAudioMap.has(key)) {
+          const cached = this.externalAudioMap.get(key);
+          if (cached) {
+            const clone = cached.cloneNode();
+            clone.volume = this.seVolume;
+            clone.play().catch(() => {});
+            return;
+          }
+        } else {
+          // 初回ロード試行
+          const testA = new Audio(`audio/se_${key}.mp3`);
+          testA.volume = this.seVolume;
+          testA.play().then(() => {
+            this.externalAudioMap.set(key, testA);
+          }).catch(() => {
+            const testB = new Audio(`se_${key}.mp3`);
+            testB.volume = this.seVolume;
+            testB.play().then(() => {
+              this.externalAudioMap.set(key, testB);
+            }).catch(() => {
+              this.externalAudioMap.set(key, null);
+              this.playSyntheticSe(key, options);
+            });
+          });
+          return;
+        }
+
+        // 外部ファイルが無い場合は月・星をイメージした高品質シンセ音を合成
+        this.playSyntheticSe(key, options);
+      }
+
+      playSyntheticSe(key, options) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const gain = this.ctx.createGain();
+        gain.connect(this.ctx.destination);
+
+        if (key === 'match') {
+          // クリスタル消去音：連鎖ごとに音階上昇（ペンタトニック／長音階）
+          const combo = options.combo || 1;
+          const scale = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50, 1174.66, 1318.51];
+          const baseFreq = scale[Math.min(scale.length - 1, combo - 1)] || 523.25;
+
+          const osc1 = this.ctx.createOscillator();
+          const osc2 = this.ctx.createOscillator();
+          osc1.type = 'sine';
+          osc2.type = 'triangle';
+          osc1.frequency.setValueAtTime(baseFreq, now);
+          osc1.frequency.exponentialRampToValueAtTime(baseFreq * 1.5, now + 0.12);
+          osc2.frequency.setValueAtTime(baseFreq * 2, now);
+
+          gain.gain.setValueAtTime(this.seVolume * 0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.3);
+          osc2.stop(now + 0.3);
+
+        } else if (key === 'special_spawn') {
+          // 星のチャイム（キラキラと高音で降り注ぐ）
+          const freqs = [1046.5, 1318.5, 1567.98, 2093.0];
+          freqs.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const noteGain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+            noteGain.gain.setValueAtTime(0, now);
+            noteGain.gain.setValueAtTime(this.seVolume * 0.22, now + idx * 0.04);
+            noteGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.35);
+            osc.connect(noteGain);
+            noteGain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.04);
+            osc.stop(now + idx * 0.04 + 0.38);
+          });
+
+        } else if (key === 'special_burst') {
+          // 必殺技発動・神聖な解放衝撃音
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(150, now);
+          osc.frequency.exponentialRampToValueAtTime(40, now + 0.45);
+          gain.gain.setValueAtTime(this.seVolume * 0.6, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 0.52);
+
+        } else if (key === 'damage_enemy') {
+          // ピシュン！と敵に当たる光弾
+          const osc = this.ctx.createOscillator();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(750, now);
+          osc.frequency.exponentialRampToValueAtTime(220, now + 0.14);
+          gain.gain.setValueAtTime(this.seVolume * 0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 0.18);
+
+        } else if (key === 'damage_player') {
+          // 鈍い衝撃音
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(50, now + 0.22);
+          gain.gain.setValueAtTime(this.seVolume * 0.4, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 0.25);
+
+        } else if (key === 'hazard_break') {
+          // 暗黒結晶・氷の硬質粉砕音（パリン！）
+          const freqs = [1800, 2400, 3200];
+          freqs.forEach((f) => {
+            const osc = this.ctx.createOscillator();
+            const nGain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(f, now);
+            osc.frequency.exponentialRampToValueAtTime(100, now + 0.18);
+            nGain.gain.setValueAtTime(this.seVolume * 0.18, now);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+            osc.connect(nGain);
+            nGain.connect(this.ctx.destination);
+            osc.start(now);
+            osc.stop(now + 0.2);
+          });
+
+        } else if (key === 'heal') {
+          // 聖なる回復音（ハープのアルペジオ）
+          [440, 554.37, 659.25, 880].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const nGain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+            nGain.gain.setValueAtTime(0, now);
+            nGain.gain.setValueAtTime(this.seVolume * 0.25, now + idx * 0.06);
+            nGain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.4);
+            osc.connect(nGain);
+            nGain.connect(this.ctx.destination);
+            osc.start(now + idx * 0.06);
+            osc.stop(now + idx * 0.06 + 0.42);
+          });
+
+        } else if (key === 'btn_click') {
+          // ボタンクリック：小さな鈴音
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1200, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+          gain.gain.setValueAtTime(this.seVolume * 0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 0.1);
+        }
+      }
+
+      playBgm(key) {
+        if (!this.bgmEnabled) return;
+        if (this.currentBgmKey === key && this.bgmAudio && !this.bgmAudio.paused) return;
+        this.stopBgm();
+        this.currentBgmKey = key;
+        this.initContext();
+
+        const audio = new Audio(`audio/bgm_${key}.mp3`);
+        audio.loop = true;
+        audio.volume = this.bgmVolume;
+        audio.play().then(() => {
+          this.bgmAudio = audio;
+        }).catch(() => {
+          const altAudio = new Audio(`bgm_${key}.mp3`);
+          altAudio.loop = true;
+          altAudio.volume = this.bgmVolume;
+          altAudio.play().then(() => {
+            this.bgmAudio = altAudio;
+          }).catch(() => {
+            this.bgmAudio = null;
+          });
+        });
+      }
+
+      stopBgm() {
+        if (this.bgmAudio) {
+          try {
+            this.bgmAudio.pause();
+            this.bgmAudio.currentTime = 0;
+          } catch(e) {}
+          this.bgmAudio = null;
+        }
+        this.currentBgmKey = null;
+      }
+    }
+
+    const soundManager = new SoundManager();
+
+    // ==========================================
+    // 🌌 エンドレスモード管理データ＆パラメータ生成
+    // ==========================================
+    let endlessWave = 1;
+    let endlessScore = 0;
+    let endlessDefeatedCount = 0;
+
+    function getEndlessEnemySettings(wave) {
+      const enemyNames = [
+        '妖魔モルガ（先鋒）', '妖魔フラウ（烈風）', '妖魔カストル（双星）',
+        '四天王ジェダイド（幻影）', '四天王ネフライト（星影）', '四天王ゾイサイト（疾風）',
+        '四天王筆頭クンツァイト（凍気）', 'スーパーベリル（暗黒）', 'カオス・メタリア（終焉）'
+      ];
+      const name = enemyNames[(wave - 1) % enemyNames.length] + ` [WAVE ${wave}]`;
+      const baseHp = 1800 + wave * 450;
+      const turnInterval = Math.max(2, 5 - Math.floor(wave / 4));
+      const normalDmg = 55 + wave * 12;
+      const rageDmg = 80 + wave * 18;
+
+      const hazardKeys = ['ice', 'dark_crystal', 'bomb'];
+      const hazardKey = hazardKeys[(wave - 1) % hazardKeys.length];
+
+      return {
+        id: `endless_${wave}`,
+        label: `WAVE ${wave}`,
+        enemyName: name,
+        imageKey: 'enemy_s6w2_super_beryl.png',
+        avatar: '🌌',
+        maxEnemyHp: baseHp,
+        maxPlayerHp: 450,
+        enemyTurnInterval: turnInterval,
+        enemyNormalDmg: normalDmg,
+        enemyRageDmg: rageDmg,
+        bombExplodeDmg: 90 + wave * 15,
+        bombInitialTimer: Math.max(3, 5 - Math.floor(wave / 6)),
+        hazardKey: hazardKey,
+        hazardCounts: { 75: Math.min(7, 3 + Math.floor(wave / 3)), 50: Math.min(8, 3 + Math.floor(wave / 3)), 25: Math.min(9, 4 + Math.floor(wave / 3)) },
+        sealTurns: Math.min(4, 2 + Math.floor(wave / 5))
+      };
+    }
+
+    function startEndlessMode() {
+      soundManager.initContext();
+      soundManager.playSe('btn_click');
+      soundManager.playBgm('battle');
+      gameMode = 'endless';
+      endlessWave = 1;
+      endlessScore = 0;
+      endlessDefeatedCount = 0;
+
+      const eSettings = getEndlessEnemySettings(endlessWave);
+      currentDifficulty = eSettings;
+      MAX_ENEMY_HP = eSettings.maxEnemyHp;
+      MAX_PLAYER_HP = getMaxPlayerHpWithBonus(eSettings.maxPlayerHp);
+      ENEMY_TURN_INTERVAL = eSettings.enemyTurnInterval;
+      ENEMY_NORMAL_ATTACK_DMG = eSettings.enemyNormalDmg;
+      ENEMY_RAGE_ATTACK_DMG = eSettings.enemyRageDmg;
+      BOMB_EXPLODE_DMG = eSettings.bombExplodeDmg;
+      BOMB_INITIAL_TIMER = eSettings.bombInitialTimer;
+
+      titleScreenEl.classList.add('hidden');
+      storyHubScreenEl.classList.add('hidden');
+      initGame(false);
+
+      statusMessageEl.textContent = `🌌【ムーン・エンドレスラッシュ】開幕！ WAVE 1【${eSettings.enemyName}】出現！ 力尽きるまで生き残れ！`;
+    }
 
     let currentDifficulty = DIFFICULTY_SETTINGS.normal;
     let isHellUnlocked = false;
@@ -4966,6 +5308,8 @@
     const freeDiffBoxEl = document.getElementById('free-diff-box');
     const btnSelectStoryEl = document.getElementById('btn-select-story');
     const btnSelectFreeEl = document.getElementById('btn-select-free');
+    const btnSelectEndlessEl = document.getElementById('btn-select-endless');
+    const badgeEndlessRecordEl = document.getElementById('badge-endless-record');
     const titleStoryBadgeEl = document.getElementById('title-story-badge');
     const btnOpenSettingsEl = document.getElementById('btn-open-settings');
     const btnOpenGalleryEl = document.getElementById('btn-open-gallery');
@@ -4978,7 +5322,16 @@
     const cfgPlayMovieEl = document.getElementById('cfg-play-movie');
     const cfgMovieVolumeEl = document.getElementById('cfg-movie-volume');
     const cfgMovieVolumeLabelEl = document.getElementById('cfg-movie-volume-label');
+    const cfgBgmVolumeEl = document.getElementById('cfg-bgm-volume');
+    const cfgBgmVolumeLabelEl = document.getElementById('cfg-bgm-volume-label');
+    const cfgSeVolumeEl = document.getElementById('cfg-se-volume');
+    const cfgSeVolumeLabelEl = document.getElementById('cfg-se-volume-label');
     const cfgResetAllSaveEl = document.getElementById('cfg-reset-all-save');
+
+    const gameoverEndlessBoxEl = document.getElementById('gameover-endless-box');
+    const goEndlessWaveEl = document.getElementById('go-endless-wave');
+    const goEndlessScoreEl = document.getElementById('go-endless-score');
+    const goEndlessBestEl = document.getElementById('go-endless-best');
 
     const galleryModalEl = document.getElementById('gallery-modal');
     const btnCloseGalleryEl = document.getElementById('btn-close-gallery');
@@ -5224,10 +5577,20 @@
       if (freeDiffBoxEl) freeDiffBoxEl.classList.add('hidden');
     }
 
+    // エンドレス最高記録バッジの更新
+    function updateEndlessRecordBadge() {
+      if (badgeEndlessRecordEl) {
+        const bestW = (saveData.endlessRecord && saveData.endlessRecord.bestWave) || 1;
+        const bestS = (saveData.endlessRecord && saveData.endlessRecord.bestScore) || 0;
+        badgeEndlessRecordEl.textContent = `👑 BEST: W${bestW} (${bestS}点)`;
+      }
+    }
+
     // タイトル階層2：モード選択画面を表示
     function showModeSelect() {
       updateTitleStoryBadge();
       updateTutorialClearBadge();
+      updateEndlessRecordBadge();
       if (titleTouchPromptEl) titleTouchPromptEl.classList.add('hidden');
       if (freeDiffBoxEl) freeDiffBoxEl.classList.add('hidden');
       if (modeSelectBoxEl) {
@@ -5258,6 +5621,7 @@
     // タイトル画面全体を表示する
     function showTitleScreen(targetView = 'touch', subMessage = '〜 必殺スキルで敵を撃破せよ！ 〜') {
       isLocked = true;
+      soundManager.playBgm('title');
       gameoverScreenEl.classList.add('hidden');
       storyHubScreenEl.classList.add('hidden');
       storyDialogOverlayEl.classList.add('hidden');
@@ -5279,6 +5643,7 @@
     // ストーリー＆育成拠点（#story-hub-screen）を表示・描画する
     function openStoryHub(defaultTab = 'stages') {
       isLocked = true;
+      soundManager.playBgm('story_hub');
       titleScreenEl.classList.add('hidden');
       gameoverScreenEl.classList.add('hidden');
       storyDialogOverlayEl.classList.add('hidden');
@@ -5363,6 +5728,9 @@
     }
 
     async function handleTitleScreenTouchStart() {
+      soundManager.initContext();
+      soundManager.playSe('btn_click');
+      soundManager.playBgm('title');
       // 初回プレイ時（チュートリアル未クリアかつストーリー未挑戦）はチュートリアルをおすすめ案内
       const isFirstPlay = !saveData.tutorialCleared && !saveData.storyPrologueSeen && Object.keys(saveData.clearedStages).length === 0;
       if (isFirstPlay) {
@@ -5455,6 +5823,13 @@
       });
     }
 
+    if (btnSelectEndlessEl) {
+      btnSelectEndlessEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startEndlessMode();
+      });
+    }
+
     if (btnModeBackToTouchEl) {
       btnModeBackToTouchEl.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -5487,6 +5862,22 @@
           : 45;
         cfgMovieVolumeEl.value = vol;
         if (cfgMovieVolumeLabelEl) cfgMovieVolumeLabelEl.textContent = `${vol}%`;
+      }
+      if (cfgBgmVolumeEl) {
+        const bVol = (saveData.settings && typeof saveData.settings.bgmVolume === 'number')
+          ? saveData.settings.bgmVolume
+          : 40;
+        cfgBgmVolumeEl.value = bVol;
+        if (cfgBgmVolumeLabelEl) cfgBgmVolumeLabelEl.textContent = `${bVol}%`;
+        soundManager.setBgmVolume(bVol / 100);
+      }
+      if (cfgSeVolumeEl) {
+        const sVol = (saveData.settings && typeof saveData.settings.seVolume === 'number')
+          ? saveData.settings.seVolume
+          : 70;
+        cfgSeVolumeEl.value = sVol;
+        if (cfgSeVolumeLabelEl) cfgSeVolumeLabelEl.textContent = `${sVol}%`;
+        soundManager.setSeVolume(sVol / 100);
       }
     }
 
@@ -5552,6 +5943,28 @@
         if (!saveData.settings) saveData.settings = { autoSkipDialog: false, playMovie: true, movieVolume: 45 };
         saveData.settings.movieVolume = vol;
         if (cfgMovieVolumeLabelEl) cfgMovieVolumeLabelEl.textContent = `${vol}%`;
+        writeSaveData();
+      });
+    }
+
+    if (cfgBgmVolumeEl) {
+      cfgBgmVolumeEl.addEventListener('input', (e) => {
+        const vol = parseInt(e.target.value, 10);
+        if (!saveData.settings) saveData.settings = { autoSkipDialog: false, playMovie: true, movieVolume: 45 };
+        saveData.settings.bgmVolume = vol;
+        if (cfgBgmVolumeLabelEl) cfgBgmVolumeLabelEl.textContent = `${vol}%`;
+        soundManager.setBgmVolume(vol / 100);
+        writeSaveData();
+      });
+    }
+
+    if (cfgSeVolumeEl) {
+      cfgSeVolumeEl.addEventListener('input', (e) => {
+        const vol = parseInt(e.target.value, 10);
+        if (!saveData.settings) saveData.settings = { autoSkipDialog: false, playMovie: true, movieVolume: 45 };
+        saveData.settings.seVolume = vol;
+        if (cfgSeVolumeLabelEl) cfgSeVolumeLabelEl.textContent = `${vol}%`;
+        soundManager.setSeVolume(vol / 100);
         writeSaveData();
       });
     }
@@ -5921,6 +6334,33 @@
 
         tabContentTrainingEl.appendChild(card);
       }
+
+      // 最下部にエンドレスサバイバルカードも追加！
+      const bestW = (saveData.endlessRecord && saveData.endlessRecord.bestWave) || 1;
+      const bestS = (saveData.endlessRecord && saveData.endlessRecord.bestScore) || 0;
+      const eCard = document.createElement('div');
+      eCard.className = 'training-card';
+      eCard.style.background = 'radial-gradient(circle at 50% 15%, rgba(108, 92, 231, 0.35) 0%, rgba(20, 15, 45, 0.85) 100%)';
+      eCard.style.borderColor = '#a29bfe';
+      eCard.innerHTML = `
+        <div class="training-card-top">
+          <span class="training-card-title" style="color:#a29bfe;">🌌 腕試し：ムーン・エンドレスラッシュ</span>
+          <span style="color:#ffeaa7; font-size:11px; font-weight:900;">👑 BEST: W${bestW} (${bestS}点)</span>
+        </div>
+        <div class="training-card-desc">力尽きるまで敵が無限に出現！WAVE突破ごとにHP一部回復＆ハイスコア記録！</div>
+        <div class="training-card-bottom">
+          <span class="training-reward-badge" style="border-color:#a29bfe; color:#a29bfe;">WAVE突破ボーナス</span>
+          <button type="button" class="training-start-btn" style="background: linear-gradient(90deg, #6c5ce7, #a29bfe); border-color:#fff200;">
+            🌌 無限挑戦
+          </button>
+        </div>
+      `;
+      const eBtn = eCard.querySelector('.training-start-btn');
+      eBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startEndlessMode();
+      });
+      tabContentTrainingEl.appendChild(eCard);
     }
 
     // 特訓バトル出撃関数
@@ -6900,6 +7340,14 @@
 
     // ゲームの初期化（retrySameCondition = true の場合は、同じ敵のお邪魔タイプ＆同じ初期盤面配置でステージ最初からやり直す）
     function initGame(retrySameCondition = false) {
+      if (gameMode === 'endless') {
+        soundManager.playBgm('chaos');
+      } else if (currentDifficulty.id === 'chaos' || (gameMode === 'story' && currentStoryStageId === 6)) {
+        soundManager.playBgm('boss');
+      } else {
+        soundManager.playBgm('battle');
+      }
+
       if (gameMode === 'story') {
         const st = getCurrentStoryStage();
         const wv = getCurrentStoryWave();
@@ -7932,6 +8380,7 @@
 
         // 着弾の瞬間に敵のHPを減らし、ダメージポップアップ＆コンボ累計ダメージを加算表示
         if (totalDamage > 0) {
+          soundManager.playSe('damage_enemy');
           applyDamage(totalDamage);
           addComboAndDamageDisplay(totalDamage, incrementCombo);
           spawnEnemyDamagePopup(totalDamage, isSpecialShot);
@@ -8008,6 +8457,7 @@
           }
 
           effectCells = fusionInfo.cells;
+          soundManager.playSe('special_burst');
           await playFusionBoardSkillEffect(fusionInfo.fxType, r, c, effectCells);
         } else {
           // 1. 通常の必殺技ムービーを再生
@@ -8018,6 +8468,7 @@
           effectCells = getSpecialEffectCells(block.id, r, c, partnerColorId);
 
           // 3. 消し方に合わせた盤面エフェクトを再生
+          soundManager.playSe('special_burst');
           await playBoardSkillEffect(block.id, r, c, effectCells);
         }
 
@@ -8071,6 +8522,7 @@
           skillDamage = Math.round(rawDmg * comboMult);
           const healAmount = 60 + whiteLv * 10;
           playerHp = Math.min(MAX_PLAYER_HP, playerHp + healAmount);
+          soundManager.playSe('heal');
           updatePlayerHpDisplay();
           playerHpSectionEl.classList.add('recovering');
           setTimeout(() => playerHpSectionEl.classList.remove('recovering'), 650);
@@ -8960,6 +9412,7 @@
         }
 
         // 消去エフェクト表示と同時に、消したブロックから敵へ素早くエフェクト弾を発射（awaitせず連鎖は止めない！）
+        soundManager.playSe('match', { combo: chainCount });
         renderBoard(matchedSet);
         launchShotsToEnemy(shotCells, normalDamage, false);
         await wait(160);
@@ -8989,6 +9442,9 @@
         if (crystalShatteredCount > 0) {
           statusMessageEl.textContent += ` 💎暗黒結晶 ${crystalShatteredCount}個粉砕！`;
         }
+        if (crystalShatteredCount > 0 || unfreezeSet.size > 0) {
+          soundManager.playSe('hazard_break');
+        }
 
         // 盤面から通常消去（爆弾ブロックが含まれていた場合はここで安全に消去される！）
         for (const key of matchedSet) {
@@ -8997,6 +9453,9 @@
         }
 
         // 必殺技ブロックを生成配置
+        if (specialsToSpawn.length > 0) {
+          soundManager.playSe('special_spawn');
+        }
         for (const sp of specialsToSpawn) {
           board[sp.r][sp.c] = createBlock(sp.blockType, true);
         }
@@ -9031,6 +9490,9 @@
       isGameClear = true;
       isLocked = true;
       clearHintTimer();
+      if (gameMode !== 'endless') {
+        soundManager.playBgm('victory');
+      }
 
       // 🌙 チュートリアルモード修了処理
       if (gameMode === 'tutorial') {
@@ -9190,6 +9652,69 @@
         statusMessageEl.textContent = isTuxedoRoseFinish
           ? `🌹 奇跡のタキシード仮面トドメ連戦制覇！！ 累計 🌙+${currentStageEarnedCrystals} 獲得！`
           : `👑 ${stageObj.title} 全WAVE連戦制覇！ 累計 🌙+${currentStageEarnedCrystals} 獲得！`;
+        return;
+      }
+
+      // 🌌 ムーン・エンドレスラッシュ（無限サバイバル）のWAVE突破処理
+      if (gameMode === 'endless') {
+        endlessDefeatedCount++;
+        const waveBonus = endlessWave * 500;
+        endlessScore += waveBonus;
+        const crystalReward = 50 + endlessWave * 25;
+        saveData.crystals = (saveData.crystals || 0) + crystalReward;
+
+        if (!saveData.endlessRecord) saveData.endlessRecord = { bestWave: 1, bestScore: 0 };
+        let isNewRecord = false;
+        if (endlessWave > saveData.endlessRecord.bestWave) {
+          saveData.endlessRecord.bestWave = endlessWave;
+          isNewRecord = true;
+        }
+        if (endlessScore > saveData.endlessRecord.bestScore) {
+          saveData.endlessRecord.bestScore = endlessScore;
+          isNewRecord = true;
+        }
+        writeSaveData();
+
+        enemyBoxEl.classList.add('defeated');
+        const recText = isNewRecord ? ' 👑【NEW RECORD!】' : '';
+        statusMessageEl.textContent = `💥 WAVE ${endlessWave} 突破！！ スコア +${waveBonus}（累計: ${endlessScore}）！ 🌙+${crystalReward} 獲得！${recText}`;
+        soundManager.playSe('special_burst');
+        await wait(1000);
+
+        // 味方HPを一部回復（35%回復）
+        const healAmt = Math.round(MAX_PLAYER_HP * 0.35);
+        playerHp = Math.min(MAX_PLAYER_HP, playerHp + healAmt);
+        updatePlayerHpDisplay();
+        soundManager.playSe('heal');
+        playerHpSectionEl.classList.add('recovering');
+        setTimeout(() => playerHpSectionEl.classList.remove('recovering'), 600);
+
+        endlessWave++;
+        const nextSettings = getEndlessEnemySettings(endlessWave);
+        currentDifficulty = nextSettings;
+        MAX_ENEMY_HP = nextSettings.maxEnemyHp;
+        enemyHp = MAX_ENEMY_HP;
+        enemyTurn = nextSettings.enemyTurnInterval;
+        ENEMY_TURN_INTERVAL = nextSettings.enemyTurnInterval;
+        ENEMY_NORMAL_ATTACK_DMG = nextSettings.enemyNormalDmg;
+        ENEMY_RAGE_ATTACK_DMG = nextSettings.enemyRageDmg;
+        BOMB_EXPLODE_DMG = nextSettings.bombExplodeDmg;
+        BOMB_INITIAL_TIMER = nextSettings.bombInitialTimer;
+
+        currentEnemyHazard = HAZARD_TYPES[nextSettings.hazardKey] || HAZARD_TYPES.ice;
+        hazardGuideTextEl.innerHTML = `<strong>【今回の敵のお邪魔：${currentEnemyHazard.icon}${currentEnemyHazard.name}】</strong> ${currentEnemyHazard.guide}`;
+
+        enemyBoxEl.classList.remove('defeated');
+        resetComboDamageDisplay();
+        generateFreshBoard();
+        updateHpDisplay();
+        updateEnemyTurnDisplay();
+        updateEnemyAppearance();
+
+        isGameClear = false;
+        isLocked = false;
+        startHintTimer();
+        statusMessageEl.textContent = `🌌 NEXT WAVE！【WAVE ${endlessWave}：${nextSettings.enemyName}】出現！ 味方HP +${healAmt} 回復！`;
         return;
       }
 
@@ -9448,20 +9973,35 @@
       isGameClear = true;
       isLocked = true;
       statusMessageEl.textContent = '💀 味方のHPが0になりました… ゲームオーバー 💀';
+      soundManager.playSe('damage_player');
       await wait(700);
 
-      if (gameMode === 'story') {
-        const st = getCurrentStoryStage();
-        const wv = getCurrentStoryWave();
-        const tuxNote = wv.allowTuxedo ? '' : '<br><span style="color:#ff6b81;">（※このWAVEではタキシード仮面救出は発動しません）</span>';
-        const earnedNotice = currentStageEarnedCrystals > 0
-          ? `<br><div style="margin-top:9px; padding:6px 12px; background:rgba(254,202,87,0.18); border:1px solid #feca57; border-radius:8px; color:#ffeaa7; font-weight:bold; font-size:12px;">🌙 突破したWAVEの報酬（+${currentStageEarnedCrystals}個）は持ち帰りました！</div>`
-          : '';
-        gameoverDescEl.innerHTML = `【${st.title}】<br>${wv.enemyName} に敗北しました…${tuxNote}${earnedNotice}`;
-        btnBackTitleEl.textContent = '🗺️ ステージ選択・育成拠点に戻る';
-      } else {
-        gameoverDescEl.innerHTML = `味方のHPが0になりました…<br><small>（今回の敵タイプ：${currentEnemyHazard.icon}${currentEnemyHazard.name}使い）</small>`;
+      if (gameMode === 'endless') {
+        if (gameoverEndlessBoxEl) {
+          gameoverEndlessBoxEl.classList.remove('hidden');
+          const bestW = (saveData.endlessRecord && saveData.endlessRecord.bestWave) || 1;
+          const bestS = (saveData.endlessRecord && saveData.endlessRecord.bestScore) || 0;
+          if (goEndlessWaveEl) goEndlessWaveEl.textContent = `🌌 到達 WAVE: ${endlessWave}`;
+          if (goEndlessScoreEl) goEndlessScoreEl.textContent = `🏆 最終スコア: ${endlessScore} 点`;
+          if (goEndlessBestEl) goEndlessBestEl.textContent = `👑 歴代最高記録: WAVE ${bestW} (${bestS}点)`;
+        }
+        gameoverDescEl.innerHTML = `力尽きてしまった…！<br>撃破敵数: ${endlessDefeatedCount}体`;
         btnBackTitleEl.textContent = '🏠 タイトルに戻る';
+      } else {
+        if (gameoverEndlessBoxEl) gameoverEndlessBoxEl.classList.add('hidden');
+        if (gameMode === 'story') {
+          const st = getCurrentStoryStage();
+          const wv = getCurrentStoryWave();
+          const tuxNote = wv.allowTuxedo ? '' : '<br><span style="color:#ff6b81;">（※このWAVEではタキシード仮面救出は発動しません）</span>';
+          const earnedNotice = currentStageEarnedCrystals > 0
+            ? `<br><div style="margin-top:9px; padding:6px 12px; background:rgba(254,202,87,0.18); border:1px solid #feca57; border-radius:8px; color:#ffeaa7; font-weight:bold; font-size:12px;">🌙 突破したWAVEの報酬（+${currentStageEarnedCrystals}個）は持ち帰りました！</div>`
+            : '';
+          gameoverDescEl.innerHTML = `【${st.title}】<br>${wv.enemyName} に敗北しました…${tuxNote}${earnedNotice}`;
+          btnBackTitleEl.textContent = '🗺️ ステージ選択・育成拠点に戻る';
+        } else {
+          gameoverDescEl.innerHTML = `味方のHPが0になりました…<br><small>（今回の敵タイプ：${currentEnemyHazard.icon}${currentEnemyHazard.name}使い）</small>`;
+          btnBackTitleEl.textContent = '🏠 タイトルに戻る';
+        }
       }
       clearHintTimer();
       gameoverScreenEl.classList.remove('hidden');
