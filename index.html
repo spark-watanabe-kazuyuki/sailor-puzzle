@@ -4284,25 +4284,39 @@
         el.volume = this.bgmVolume;
         el.loop = true;
 
-        const primarySrc = `audio/bgm_${key}.mp3`;
-        const altSrc = `bgm_${key}.mp3`;
-
-        el.onerror = () => {
-          if (el.src && el.src.indexOf(primarySrc) !== -1) {
-            el.onerror = () => {
-              el.onerror = null;
-              this.currentBgmKey = null;
-            };
-            el.src = altSrc;
-            el.play().catch(() => {});
-          } else {
-            el.onerror = null;
-            this.currentBgmKey = null;
-          }
+        // BGMごとの読み込み候補リスト（専用ファイルがあれば最優先、無ければ自動フォールバックで流す）
+        const candidateMap = {
+          'title': ['audio/bgm_title.mp3', 'bgm_title.mp3'],
+          'story_hub': [
+            'audio/bgm_story_hub.mp3', 'bgm_story_hub.mp3',
+            'audio/bgm_story.mp3', 'bgm_story.mp3',
+            'audio/bgm_stage.mp3', 'bgm_stage.mp3',
+            'audio/bgm_stage_select.mp3', 'bgm_stage_select.mp3',
+            'audio/bgm_title.mp3', 'bgm_title.mp3' // 専用BGMが未配置の場合はタイトルBGMで優雅に演出
+          ],
+          'battle': ['audio/bgm_battle.mp3', 'bgm_battle.mp3'],
+          'boss': ['audio/bgm_boss.mp3', 'bgm_boss.mp3', 'audio/bgm_battle.mp3', 'bgm_battle.mp3'],
+          'chaos': ['audio/bgm_chaos.mp3', 'bgm_chaos.mp3', 'audio/bgm_boss.mp3', 'bgm_boss.mp3', 'audio/bgm_battle.mp3'],
+          'victory': ['audio/bgm_victory.mp3', 'bgm_victory.mp3', 'audio/tousen.mp3', 'tousen.mp3']
         };
 
-        el.src = primarySrc;
-        el.play().catch(() => {});
+        const candidates = candidateMap[key] || [`audio/bgm_${key}.mp3`, `bgm_${key}.mp3`];
+        let candidateIdx = 0;
+
+        const tryNextSource = () => {
+          if (candidateIdx >= candidates.length) {
+            el.onerror = null;
+            return;
+          }
+          const nextSrc = candidates[candidateIdx++];
+          el.onerror = () => {
+            tryNextSource();
+          };
+          el.src = nextSrc;
+          el.play().catch(() => {});
+        };
+
+        tryNextSource();
       }
 
       stopBgm() {
