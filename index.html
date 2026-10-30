@@ -1552,6 +1552,69 @@
       border-color: #ff4757;
     }
 
+    /* エンドレスラッシュ専用ステータス＆途中退出バナー */
+    #endless-guide-banner {
+      background: linear-gradient(135deg, rgba(20, 15, 45, 0.95) 0%, rgba(45, 20, 80, 0.95) 100%);
+      border: 2px solid #a29bfe;
+      border-radius: 10px;
+      padding: 6px 10px;
+      margin-bottom: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(162, 155, 254, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      z-index: 50;
+      animation: bannerPopIn 0.3s ease-out;
+    }
+    #endless-guide-banner.hidden {
+      display: none !important;
+    }
+    .endless-banner-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .endless-banner-title {
+      font-size: 11px;
+      font-weight: 900;
+      color: #a29bfe;
+      letter-spacing: 0.5px;
+    }
+    .endless-wave-tag {
+      font-size: 12px;
+      font-weight: 800;
+      color: #ffeaa7;
+      background: rgba(255, 234, 167, 0.15);
+      border: 1px solid rgba(255, 234, 167, 0.3);
+      border-radius: 4px;
+      padding: 1px 6px;
+    }
+    .endless-score-tag {
+      font-size: 12px;
+      color: #fd79a8;
+      font-weight: 700;
+    }
+    .endless-quit-btn {
+      font-size: 11px;
+      font-weight: bold;
+      color: #dfe6e9;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .endless-quit-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 71, 87, 0.85);
+      border-color: #ff4757;
+      box-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+    }
+
     /* チュートリアル用の指アイコンガイド（ミリ秒単位・実DOMセル座標対応） */
     #tutorial-finger-guide {
       position: absolute;
@@ -4024,6 +4087,16 @@
       <button type="button" class="tutorial-skip-btn" id="btn-tut-skip">✕ 戻る</button>
     </div>
 
+    <!-- エンドレスラッシュ専用ステータス＆途中退出バナー -->
+    <div id="endless-guide-banner" class="hidden">
+      <div class="endless-banner-info">
+        <span class="endless-banner-title">⚔️ ENDLESS RUSH</span>
+        <span class="endless-wave-tag" id="endless-banner-wave">⚔️ WAVE 1</span>
+        <span class="endless-score-tag">SCORE: <strong id="endless-banner-score">0</strong></span>
+      </div>
+      <button type="button" class="endless-quit-btn" id="btn-endless-quit">✕ 途中退出</button>
+    </div>
+
     <!-- 状態メッセージ -->
     <div id="status-message">ブロックを上下左右にドラッグして入れ替えよう！</div>
 
@@ -4594,6 +4667,7 @@
       titleScreenEl.classList.add('hidden');
       storyHubScreenEl.classList.add('hidden');
       initGame(false);
+      updateEndlessBanner();
 
       statusMessageEl.textContent = `🌌【ムーン・エンドレスラッシュ】開幕！ WAVE 1【${eSettings.enemyName}】出現！ 力尽きるまで生き残れ！`;
     }
@@ -5436,6 +5510,11 @@
     const btnTutSkipEl = document.getElementById('btn-tut-skip');
     const tutorialFingerGuideEl = document.getElementById('tutorial-finger-guide');
 
+    const endlessGuideBannerEl = document.getElementById('endless-guide-banner');
+    const endlessBannerWaveEl = document.getElementById('endless-banner-wave');
+    const endlessBannerScoreEl = document.getElementById('endless-banner-score');
+    const btnEndlessQuitEl = document.getElementById('btn-endless-quit');
+
     const gameConfirmModalEl = document.getElementById('game-confirm-modal');
     const confirmModalIconEl = document.getElementById('confirm-modal-icon');
     const confirmModalTitleEl = document.getElementById('confirm-modal-title');
@@ -5705,6 +5784,7 @@
     function showTitleScreen(targetView = 'touch', subMessage = '〜 必殺スキルで敵を撃破せよ！ 〜') {
       isLocked = true;
       soundManager.playBgm('title');
+      if (endlessGuideBannerEl) endlessGuideBannerEl.classList.add('hidden');
       gameoverScreenEl.classList.add('hidden');
       storyHubScreenEl.classList.add('hidden');
       storyDialogOverlayEl.classList.add('hidden');
@@ -5727,6 +5807,7 @@
     function openStoryHub(defaultTab = 'stages') {
       isLocked = true;
       soundManager.playBgm('story_hub');
+      if (endlessGuideBannerEl) endlessGuideBannerEl.classList.add('hidden');
       titleScreenEl.classList.add('hidden');
       gameoverScreenEl.classList.add('hidden');
       storyDialogOverlayEl.classList.add('hidden');
@@ -5881,6 +5962,76 @@
         if (ok) {
           endTutorialAndReturnToTitle();
         }
+      });
+    }
+
+    // エンドレスラッシュ用ステータスバナーの表示＆更新
+    function updateEndlessBanner() {
+      if (endlessGuideBannerEl) {
+        if (gameMode === 'endless') {
+          endlessGuideBannerEl.classList.remove('hidden');
+          if (endlessBannerWaveEl) endlessBannerWaveEl.textContent = `⚔️ WAVE ${endlessWave}`;
+          if (endlessBannerScoreEl) endlessBannerScoreEl.textContent = endlessScore.toLocaleString();
+        } else {
+          endlessGuideBannerEl.classList.add('hidden');
+        }
+      }
+    }
+
+    // エンドレスラッシュ途中退出処理（スコア＆到達WAVEを保存してタイトルへ安全に戻る）
+    async function quitEndlessMode() {
+      soundManager.playSe('btn_click');
+      isLocked = true;
+      clearHintTimer();
+
+      const ok = await showGameConfirmDialog({
+        icon: '⚔️',
+        title: 'エンドレスラッシュ中断',
+        text: `現在の記録を保存して終了しますか？\n\n【今回の記録】\n到達: WAVE ${endlessWave}\nスコア: ${endlessScore.toLocaleString()} 点\n撃破敵数: ${endlessDefeatedCount} 体`,
+        okText: '退出してタイトルへ',
+        cancelText: 'バトルを続ける'
+      });
+
+      if (!ok) {
+        isLocked = false;
+        startHintTimer();
+        return;
+      }
+
+      // ハイスコア判定＆保存
+      if (!saveData.endlessRecord) saveData.endlessRecord = { bestWave: 1, bestScore: 0 };
+      let isNewRecord = false;
+      if (endlessWave > saveData.endlessRecord.bestWave) {
+        saveData.endlessRecord.bestWave = endlessWave;
+        isNewRecord = true;
+      }
+      if (endlessScore > saveData.endlessRecord.bestScore) {
+        saveData.endlessRecord.bestScore = endlessScore;
+        isNewRecord = true;
+      }
+      writeSaveData();
+      updateEndlessRecordBadge();
+
+      // バナー非表示＆初期化
+      if (endlessGuideBannerEl) endlessGuideBannerEl.classList.add('hidden');
+      initGame(false, false);
+      showTitleScreen('mode');
+
+      // タイトル画面で結果確認ダイアログを表示
+      const newRecTag = isNewRecord ? '\n🎉【NEW RECORD!! 自己最高記録更新！】' : '';
+      await showGameConfirmDialog({
+        icon: '🏆',
+        title: 'エンドレスラッシュ終了',
+        text: `お疲れ様でした！記録を保存しました。${newRecTag}\n\n到達: WAVE ${endlessWave}\n最終スコア: ${endlessScore.toLocaleString()} 点\n撃破敵数: ${endlessDefeatedCount} 体`,
+        okText: 'OK',
+        singleOk: true
+      });
+    }
+
+    if (btnEndlessQuitEl) {
+      btnEndlessQuitEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        quitEndlessMode();
       });
     }
 
@@ -9815,6 +9966,7 @@
         updateHpDisplay();
         updateEnemyTurnDisplay();
         updateEnemyAppearance();
+        updateEndlessBanner();
 
         isGameClear = false;
         isLocked = false;
@@ -10109,6 +10261,7 @@
         }
       }
       clearHintTimer();
+      if (endlessGuideBannerEl) endlessGuideBannerEl.classList.add('hidden');
       gameoverScreenEl.classList.remove('hidden');
     }
 
