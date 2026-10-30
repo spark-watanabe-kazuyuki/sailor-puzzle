@@ -6761,6 +6761,9 @@
     // （背景にムービーを再生開始し、27秒後に文字が画面外の下から上へスクロール開始。
     //   文字が画面から完全に消えたら、2秒の黒フェードアウトでムービーも暗転終了）
     function playCreditsRoll() {
+      // エンディングムービー再生中はBGMを完全に停止（動画自体の音楽・音声をクリアに聴くため）
+      soundManager.stopBgm();
+
       return new Promise((resolve) => {
         const creditsOverlay = document.getElementById('story-credits-overlay');
         const container = document.getElementById('credits-scroll-container');
