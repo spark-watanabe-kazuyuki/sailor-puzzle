@@ -10430,8 +10430,8 @@
       }, HINT_FLASH_DURATION);
     }
 
-    // 操作が途切れて一定時間（8秒＝従来の4秒の倍）経過したらヒントを表示するタイマーを開始
-    function startHintTimer(delayMs = 8000) {
+    // 操作が途切れて一定時間（15秒）経過したらヒントを表示するタイマーを開始
+    function startHintTimer(delayMs = 15000) {
       clearHintTimer();
       if (isLocked || isGameClear || playerHp <= 0) return;
       if (saveData.settings && saveData.settings.showHint === false) return; // ヒントOFF設定なら起動しない
