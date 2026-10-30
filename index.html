@@ -10275,7 +10275,13 @@
 
     // ===== 操作一定時間なし時のヒント機能 =====
     let hintTimeoutId = null;
+    let hintRotateTimeoutId = null;
     let currentHintCells = [];
+    let currentHintMoveIndex = 0;
+
+    // 1回のヒント点滅サイクル（0.9秒 × 3回 = 2.7秒）と消灯インターバル（0.2秒）
+    const HINT_FLASH_DURATION = 2700;
+    const HINT_INTERVAL_DURATION = 200;
 
     // 盤面上のヒント点滅エフェクトを消去
     function clearHintHighlight() {
@@ -10294,12 +10300,18 @@
         clearTimeout(hintTimeoutId);
         hintTimeoutId = null;
       }
+      if (hintRotateTimeoutId) {
+        clearTimeout(hintRotateTimeoutId);
+        hintRotateTimeoutId = null;
+      }
       clearHintHighlight();
+      currentHintMoveIndex = 0;
     }
 
-    // 盤面上で有効なスワップ（マッチ成立または必殺技発動）が可能なペアを1組探索
-    function findAvailableMove() {
-      if (!board || board.length === 0 || !Array.isArray(board[0])) return null;
+    // 盤面上で有効なスワップ（マッチ成立または必殺技発動）が可能なすべてのペアを探索
+    function findAllAvailableMoves() {
+      if (!board || board.length === 0 || !Array.isArray(board[0])) return [];
+      const moves = [];
 
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -10310,16 +10322,15 @@
           if (c + 1 < COLS) {
             const b2 = board[r][c + 1];
             if (b2 && canMoveBlock(r, c + 1)) {
-              // ★必殺技を含むペアなら有効
               if (b1.isSpecial || b2.isSpecial) {
-                return [{ r, c }, { r, c: c + 1 }];
-              }
-              // 通常スワップしてマッチ成立するか判定
-              swapBlocks(r, c, r, c + 1);
-              const matches = findMatchGroups();
-              swapBlocks(r, c, r, c + 1);
-              if (matches && matches.length > 0) {
-                return [{ r, c }, { r, c: c + 1 }];
+                moves.push([{ r, c }, { r, c: c + 1 }]);
+              } else {
+                swapBlocks(r, c, r, c + 1);
+                const matches = findMatchGroups();
+                swapBlocks(r, c, r, c + 1);
+                if (matches && matches.length > 0) {
+                  moves.push([{ r, c }, { r, c: c + 1 }]);
+                }
               }
             }
           }
@@ -10328,40 +10339,77 @@
           if (r + 1 < ROWS) {
             const b2 = board[r + 1][c];
             if (b2 && canMoveBlock(r + 1, c)) {
-              // ★必殺技を含むペアなら有効
               if (b1.isSpecial || b2.isSpecial) {
-                return [{ r, c }, { r: r + 1, c }];
-              }
-              // 通常スワップしてマッチ成立するか判定
-              swapBlocks(r, c, r + 1, c);
-              const matches = findMatchGroups();
-              swapBlocks(r, c, r + 1, c);
-              if (matches && matches.length > 0) {
-                return [{ r, c }, { r: r + 1, c }];
+                moves.push([{ r, c }, { r: r + 1, c }]);
+              } else {
+                swapBlocks(r, c, r + 1, c);
+                const matches = findMatchGroups();
+                swapBlocks(r, c, r + 1, c);
+                if (matches && matches.length > 0) {
+                  moves.push([{ r, c }, { r: r + 1, c }]);
+                }
               }
             }
           }
         }
       }
-      return null;
+      return moves;
     }
 
-    // 操作が途切れて一定時間（4秒）経過したらヒントを表示するタイマーを開始
-    function startHintTimer(delayMs = 4000) {
+    // 互換用：最初の1手を返す
+    function findAvailableMove() {
+      const moves = findAllAvailableMoves();
+      return moves.length > 0 ? moves[0] : null;
+    }
+
+    // ヒントを表示し、3回点滅したら次の候補地へローテーション移動する処理
+    function showNextHint() {
+      if (isLocked || isGameClear || playerHp <= 0) {
+        clearHintTimer();
+        return;
+      }
+
+      const moves = findAllAvailableMoves();
+      if (!moves || moves.length === 0) {
+        clearHintHighlight();
+        return;
+      }
+
+      if (currentHintMoveIndex >= moves.length) {
+        currentHintMoveIndex = 0;
+      }
+      const move = moves[currentHintMoveIndex];
+      currentHintMoveIndex = (currentHintMoveIndex + 1) % moves.length;
+
+      // 古いハイライトを解除してから新しいペアをハイライト
+      clearHintHighlight();
+      currentHintCells = move;
+      move.forEach(pos => {
+        const cellEl = document.querySelector(`.cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
+        if (cellEl) {
+          cellEl.classList.remove('hint-pulse');
+          void cellEl.offsetWidth; // アニメーションを頭出しリフレッシュ
+          cellEl.classList.add('hint-pulse');
+        }
+      });
+      statusMessageEl.textContent = '💡 ヒント：金色に光っているブロックをスワイプしてみよう！';
+
+      // 3回点滅（2700ms）完了後に一旦消灯し、次の場所へ移動
+      hintRotateTimeoutId = setTimeout(() => {
+        clearHintHighlight();
+        hintRotateTimeoutId = setTimeout(() => {
+          showNextHint();
+        }, HINT_INTERVAL_DURATION);
+      }, HINT_FLASH_DURATION);
+    }
+
+    // 操作が途切れて一定時間（8秒＝従来の4秒の倍）経過したらヒントを表示するタイマーを開始
+    function startHintTimer(delayMs = 8000) {
       clearHintTimer();
       if (isLocked || isGameClear || playerHp <= 0) return;
 
       hintTimeoutId = setTimeout(() => {
-        if (isLocked || isGameClear || playerHp <= 0) return;
-        const move = findAvailableMove();
-        if (move && move.length === 2) {
-          currentHintCells = move;
-          move.forEach(pos => {
-            const cellEl = document.querySelector(`.cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
-            if (cellEl) cellEl.classList.add('hint-pulse');
-          });
-          statusMessageEl.textContent = '💡 ヒント：金色に光っているブロックをスワイプしてみよう！';
-        }
+        showNextHint();
       }, delayMs);
     }
 
