@@ -6335,7 +6335,7 @@
               galleryModalEl.classList.add('hidden');
               await playStoryGrandEndingSequence(true);
             } else {
-              await playCutinMovie(mv.src, mv.name, mv.id === 'clear', true);
+              await playCutinMovie(mv.src, mv.name, mv.id === 'clear', true, true);
             }
           });
           galleryMovieGridEl.appendChild(card);
@@ -6681,7 +6681,7 @@
           if (currentItem && currentItem.transformMovie) {
             isTransitioning = true;
             storyDialogOverlayEl.classList.add('hidden');
-            await playCutinMovie(currentItem.transformMovie, currentItem.transformTitle || 'メイクアップ！', true, true);
+            await playCutinMovie(currentItem.transformMovie, currentItem.transformTitle || 'メイクアップ！', true, true, true);
             storyDialogOverlayEl.classList.remove('hidden');
             isTransitioning = false;
           }
@@ -9767,7 +9767,7 @@
         clearCenterBannerEl.textContent = '🎓 TUTORIAL COMPLETE!! 🎓';
         await wait(1200);
         clearCenterBannerEl.classList.add('hidden');
-        await playCutinMovie(CLEAR_MOVIE, '🎉 チュートリアル卒業！！ 🎉', true);
+        await playCutinMovie(CLEAR_MOVIE, '🎉 チュートリアル卒業！！ 🎉', true, false, true);
 
         const rewardMsg = isFirst ? '\n\n🎁 初回修了特典：💎 クリスタル +100個 獲得！' : '';
         await showGameConfirmDialog({
@@ -9838,7 +9838,7 @@
             : `🎉 STAGE ${waveTag} CLEAR!! 🎉`;
           await wait(1200);
           clearCenterBannerEl.classList.add('hidden');
-          await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 ${waveObj.enemyName} 撃破！ 🎉`, true);
+          await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 ${waveObj.enemyName} 撃破！ 🎉`, true, false, true);
 
           openStoryHub('stages');
           statusMessageEl.textContent = isTuxedoRoseFinish
@@ -9902,7 +9902,7 @@
           : `🎉 STAGE ${stageObj.id} ALL WAVES CLEAR!! 🎉`;
         await wait(1200);
         clearCenterBannerEl.classList.add('hidden');
-        await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 STAGE ${stageObj.id} 連戦制覇!! 🎉`, true);
+        await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 STAGE ${stageObj.id} 連戦制覇!! 🎉`, true, false, true);
 
         openStoryHub('stages');
         statusMessageEl.textContent = isTuxedoRoseFinish
@@ -9994,7 +9994,7 @@
           : '🎉 TRAINING CLEAR!! 🎉';
         await wait(1200);
         clearCenterBannerEl.classList.add('hidden');
-        await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 特訓修了！ 🌙+${reward} 獲得！ 🎉`, true);
+        await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 特訓修了！ 🌙+${reward} 獲得！ 🎉`, true, false, true);
 
         openStoryHub('training');
         statusMessageEl.textContent = isTuxedoRoseFinish
@@ -10017,7 +10017,7 @@
 
       // 2. クリアムービー（movie_clear.mp4）を開始（ムービー中も文字は画面中央）
       clearCenterBannerEl.classList.add('hidden');
-      await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : '🎉 GAME CLEAR!! 🎉', true);
+      await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : '🎉 GAME CLEAR!! 🎉', true, false, true);
 
       const clearedDiffId = currentDifficulty.id;
       const wasHellUnlocked = isHellUnlocked;
@@ -10384,13 +10384,17 @@
 
     // 動画カットイン再生の共通関数（centerBanner = true の場合は文字を画面中央に表示）
     // （画面タップ・クリック、またはスキップボタンで即座にスキップ可能）
-    function playCutinMovie(movieSrc, bannerText, centerBanner = false, forcePlay = false) {
+    // pauseBgm: ムービー再生時にBGMを一時停止するかどうか（必殺技カットイン時はBGMを鳴らし続けるためデフォルトfalse）
+    function playCutinMovie(movieSrc, bannerText, centerBanner = false, forcePlay = false, pauseBgm = false) {
       if (!forcePlay && saveData.settings && saveData.settings.playMovie === false && !centerBanner) {
         // 設定でムービーOFFの場合は動画をロードせず即座に完了
         return Promise.resolve();
       }
       // ムービー再生中はBGMを一時停止（ムービーの音声がクリアに聞こえるように）
-      soundManager.pauseBgmForMovie();
+      // BGM一時停止フラグが有効な場合のみ停止（必殺技発動時はBGMをそのまま流し続ける）
+      if (pauseBgm) {
+        soundManager.pauseBgmForMovie();
+      }
 
       return new Promise(resolve => {
         let finished = false;
@@ -10410,7 +10414,10 @@
           videoOverlayEl.classList.remove('active');
           specialBannerEl.classList.remove('center-banner');
           // ムービー終了後にBGMを自動再開
-          soundManager.resumeBgmAfterMovie();
+          // ムービー終了後にBGMを自動再開（停止していた場合のみ）
+          if (pauseBgm) {
+            soundManager.resumeBgmAfterMovie();
+          }
           resolve();
         };
 
