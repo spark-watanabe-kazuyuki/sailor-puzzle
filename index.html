@@ -2045,6 +2045,11 @@
       border-color: #74b9ff;
       box-shadow: 0 2px 12px rgba(9, 132, 227, 0.65);
     }
+    #tab-btn-training.active {
+      background: linear-gradient(90deg, #ff7675, #d63031);
+      border-color: #ffeaa7;
+      box-shadow: 0 2px 12px rgba(214, 48, 49, 0.7);
+    }
     #tab-btn-upgrades.active {
       background: linear-gradient(90deg, #e84393, #fd79a8);
       border-color: #fff200;
@@ -2065,6 +2070,137 @@
       border-radius: 12px;
       padding: 8px 6px;
       border: 1px solid rgba(116, 185, 255, 0.28);
+    }
+
+    #tab-content-training {
+      background: radial-gradient(circle at 50% 15%, rgba(45, 15, 20, 0.65) 0%, rgba(18, 5, 8, 0.88) 100%);
+      border-radius: 12px;
+      padding: 8px 6px;
+      border: 1px solid rgba(255, 118, 117, 0.35);
+    }
+
+    /* 特訓カードスタイル */
+    .training-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(255, 118, 117, 0.45);
+      border-radius: 12px;
+      padding: 9px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .training-card:hover {
+      border-color: #ffeaa7;
+      box-shadow: 0 0 12px rgba(255, 118, 117, 0.4);
+    }
+    .training-card.locked {
+      opacity: 0.5;
+      filter: grayscale(0.7);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .training-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+    }
+    .training-card-title {
+      font-size: 13px;
+      font-weight: 900;
+      color: #ffeaa7;
+    }
+    .training-card-desc {
+      font-size: 11px;
+      color: #dcdde1;
+      line-height: 1.35;
+    }
+    .training-card-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 3px;
+    }
+    .training-reward-badge {
+      font-size: 11px;
+      font-weight: 900;
+      color: #fff200;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid #feca57;
+      padding: 3px 8px;
+      border-radius: 12px;
+    }
+    .training-start-btn {
+      background: linear-gradient(90deg, #ff7675, #d63031);
+      border: 1px solid #ffeaa7;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 900;
+      padding: 5px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(214, 48, 49, 0.5);
+      transition: all 0.12s ease;
+    }
+    .training-start-btn:hover:not(:disabled) {
+      transform: scale(1.05);
+      filter: brightness(1.15);
+    }
+    .training-start-btn:disabled {
+      background: rgba(120, 120, 120, 0.4);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #888;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* 暗黒結晶（dark_crystal）のお邪魔スタイル */
+    .hazard-dark-crystal {
+      position: relative;
+      background: radial-gradient(circle, rgba(142, 68, 173, 0.85) 0%, rgba(44, 62, 80, 0.95) 100%) !important;
+      border: 2px solid #a29bfe !important;
+      box-shadow: 0 0 12px rgba(162, 155, 254, 0.6), inset 0 0 10px rgba(0, 0, 0, 0.8);
+    }
+    .hazard-dark-crystal::before {
+      content: '💎';
+      position: absolute;
+      font-size: 26px;
+      z-index: 5;
+      filter: drop-shadow(0 0 6px #6c5ce7) hue-rotate(240deg);
+      animation: crystalThrob 1.6s ease-in-out infinite alternate;
+    }
+    .hazard-dark-crystal.crystal-cracked {
+      border-color: #ff7675 !important;
+      box-shadow: 0 0 14px rgba(255, 118, 117, 0.8);
+    }
+    .hazard-dark-crystal.crystal-cracked::after {
+      content: '⚡';
+      position: absolute;
+      font-size: 20px;
+      color: #ffeaa7;
+      z-index: 6;
+      animation: crackFlicker 0.4s ease-in-out infinite alternate;
+    }
+    @keyframes crystalThrob {
+      0% { transform: scale(0.94); }
+      100% { transform: scale(1.06); }
+    }
+    @keyframes crackFlicker {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+    .dark-crystal-badge {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      font-size: 9px;
+      font-weight: 900;
+      background: rgba(0, 0, 0, 0.82);
+      color: #dff9fb;
+      border: 1px solid #a29bfe;
+      border-radius: 8px;
+      padding: 1px 4px;
+      z-index: 7;
     }
 
     #tab-content-upgrades {
@@ -3539,14 +3675,18 @@
       </div>
 
       <div class="story-hub-tabs">
-        <button type="button" class="story-tab-btn active" id="tab-btn-stages">🗺️ ステージ選択 (全6章)</button>
-        <button type="button" class="story-tab-btn" id="tab-btn-upgrades">✨ セーラー戦士育成</button>
+        <button type="button" class="story-tab-btn active" id="tab-btn-stages">🗺️ ステージ (全6章)</button>
+        <button type="button" class="story-tab-btn" id="tab-btn-training">⚔️ 守護戦士の特訓</button>
+        <button type="button" class="story-tab-btn" id="tab-btn-upgrades">✨ 戦士育成</button>
       </div>
 
       <!-- タブ1：ステージ選択リスト -->
       <div class="story-tab-content" id="tab-content-stages"></div>
 
-      <!-- タブ2：育成画面（案1：ステータス強化 ＋ 案2：特殊アビリティ解放） -->
+      <!-- タブ2：守護戦士の特訓（模擬戦・フリーバトル統合） -->
+      <div class="story-tab-content hidden" id="tab-content-training"></div>
+
+      <!-- タブ3：育成画面 -->
       <div class="story-tab-content hidden" id="tab-content-upgrades"></div>
 
       <div class="story-hub-footer">
@@ -3970,8 +4110,70 @@
         bombInitialTimer: 3,
         hazardCounts: { 75: 6, 50: 7, 25: 8 },
         sealTurns: 4
+      },
+      chaos: {
+        id: 'chaos',
+        label: 'CHAOS',
+        enemyName: '終焉のカオス・メタリア',
+        imageKey: 'enemy_s6w2_super_beryl.png',
+        avatar: '🌌',
+        maxEnemyHp: 11000,
+        maxPlayerHp: 400,
+        enemyTurnInterval: 2,
+        enemyNormalDmg: 145,
+        enemyRageDmg: 210,
+        bombExplodeDmg: 200,
+        bombInitialTimer: 3,
+        hazardCounts: { 75: 7, 50: 8, 25: 9 },
+        sealTurns: 4
       }
     };
+
+    // 守護戦士の特訓コース定義（旧フリーバトル統合＆経験値獲得・周回用）
+    const TRAINING_COURSES = [
+      {
+        id: 'easy',
+        title: '🌱 初級：守護戦士の基礎組手',
+        desc: '敵HP 2200 / 攻撃間隔 6T。基本のお邪魔に慣れるための基礎特訓。',
+        reward: 150,
+        diffKey: 'easy',
+        enemyName: 'モルガ（実戦幻影）'
+      },
+      {
+        id: 'normal',
+        title: '⚔️ 中級：セーラー実戦強化',
+        desc: '敵HP 3400 / 攻撃間隔 5T。氷結とお邪魔に素早く対応する実戦訓練。',
+        reward: 300,
+        diffKey: 'normal',
+        enemyName: 'ネフライト（実戦幻影）'
+      },
+      {
+        id: 'hard',
+        title: '🔥 上級：暗黒四天王の猛攻',
+        desc: '敵HP 4800 / 攻撃間隔 4T。時限爆弾と猛攻を乗り切る上級修練。',
+        reward: 500,
+        diffKey: 'hard',
+        enemyName: 'クンツァイト（実戦幻影）'
+      },
+      {
+        id: 'hell',
+        title: '💀 地獄：ジェダイド・ヘルラッシュ',
+        desc: '敵HP 6800 / 攻撃間隔 3T。極限の猛攻とお邪魔連発の超難関特訓！',
+        reward: 1000,
+        diffKey: 'hell',
+        enemyName: '極限ジェダイド（地獄）'
+      },
+      {
+        id: 'chaos',
+        title: '🌌 終焉：カオス・メタリア修練（極限難易度）',
+        desc: '敵HP 11000 / 攻撃間隔 2T / 暗黒結晶＆爆弾！全戦士育成MAXで挑む究極の試練！',
+        reward: 3000,
+        diffKey: 'chaos',
+        enemyName: '終焉のカオス・メタリア'
+      }
+    ];
+
+    let currentTrainingCourse = null;
 
     let currentDifficulty = DIFFICULTY_SETTINGS.normal;
     let isHellUnlocked = false;
@@ -4005,21 +4207,21 @@
     const HAZARD_TYPES = {
       ice: {
         id: 'ice',
-        name: '氷',
+        name: '氷結',
         icon: '❄️',
-        guide: '❄️氷ブロック：直接動かせません。その色で揃えるか、隣でブロックを消すと溶けて解除！（必殺技でも破壊可）'
+        guide: '❄️氷結ブロック：直接動かせません。その色で揃えるか、隣でブロックを消すと1回で解凍！（必殺技でも破壊可）'
       },
-      chain: {
-        id: 'chain',
-        name: '鎖',
-        icon: '⛓️',
-        guide: '⛓️鎖ブロック：直接動かせません。周囲から同じ色を運んで3つ揃えると鎖が砕けて解除！（必殺技でも破壊可）'
+      dark_crystal: {
+        id: 'dark_crystal',
+        name: '暗黒結晶',
+        icon: '💎',
+        guide: '💎暗黒結晶：動かせない頑丈な結晶（耐久度2）。隣でブロックを消す(2回)か、★必殺技を直撃させると粉砕可能！'
       },
       bomb: {
         id: 'bomb',
         name: '時限爆弾',
         icon: '💣',
-        guide: '💣時限爆弾：自由に動かせます。カウントが0になる前に3つ揃えるか必殺技で消して解除しよう！'
+        guide: '💣時限爆弾：自由に動かせます。カウントが0になると大爆発！0になる前に揃えるか必殺技で消そう！'
       }
     };
 
@@ -4353,7 +4555,7 @@
             allowTuxedo: true,
             introDialogs: [
               { speaker: '🐱 ルナ', avatar: '🐱', face: 'face_luna.png', text: '「うさぎちゃん！ 宝石店のお客さんたちのエナジーが妖魔に吸い取られているわ！ 変身よ！」' },
-              { speaker: '🌙 セーラームーン', avatar: '🌙', face: 'face_usagi.png', text: '「えぇーっ、あたしが戦うの！？ うぅ…でもなるちゃんを助けなきゃ！ ムーン・プリズムパワー・メイクアップ！！」' },
+              { speaker: '🌙 セーラームーン', avatar: '🌙', face: 'face_usagi.png', text: '「えぇーっ、あたしが戦うの！？ うぅ…でもなるちゃんを助けなきゃ！ ムーン・プリズムパワー・メイクアップ！！」', transformMovie: 'movie_white.mp4', transformTitle: '🌙 ムーン・プリズムパワー・メイクアップ！ 🌙' },
               { speaker: '👹 妖魔モルガ', avatar: '👹', face: 'face_morga.png', text: '「グフフ…人間の小娘が何の用だ！ お前のキラキラしたエナジーも吸い尽くしてやるよ！」' },
               { speaker: '🐱 ルナ', avatar: '🐱', face: 'face_luna.png', text: '「今はまだ仲間がいないから、必殺技が使えるのは『⚪白（ムーン）』だけよ！ 白を4つ以上揃えるか3連続で消してみて！」' }
             ],
@@ -4379,7 +4581,7 @@
             allowTuxedo: true,
             introDialogs: [
               { speaker: '👹 妖魔ガロベン', avatar: '👹', face: 'face_garoben.png', text: '「ホッホッホ！ クリスタルゼミナールの生徒たちの知能エナジーはすべて頂いたわ！」' },
-              { speaker: '💧 水野亜美', avatar: '💧', face: 'face_ami.png', text: '「勉強を悪事に使うなんて許せない…！ マーキュリー・パワー・メイクアップ！！」' },
+              { speaker: '💧 水野亜美', avatar: '💧', face: 'face_ami.png', text: '「勉強を悪事に使うなんて許せない…！ マーキュリー・パワー・メイクアップ！！」', transformMovie: 'movie_blue.mp4', transformTitle: '💧 マーキュリー・パワー・メイクアップ！ 💧' },
               { speaker: '💧 セーラーマーキュリー', avatar: '💧', face: 'face_ami.png', text: '「水でもかぶって反省しなさい！ セーラームーン、私も一緒に戦うわ！（🔵青の必殺技『横2行レーザー』が解禁！）」' }
             ],
             outroDialogs: [
@@ -4397,13 +4599,13 @@
             enemyRageDmg: 95,
             bombExplodeDmg: 85,
             bombInitialTimer: 5,
-            hazardKey: 'chain',
+            hazardKey: 'dark_crystal',
             hazardCounts: { 75: 3, 50: 4, 25: 4 },
             sealTurns: 2,
             unlockedColors: ['white', 'blue', 'red'], // セーラーマーズ（赤）合流！
             allowTuxedo: true,
             introDialogs: [
-              { speaker: '🔥 火川レイ', avatar: '🔥', face: 'face_rei.png', text: '「神社の巫女を怒らせたらどうなるか、思い知らせてあげる！ マーズ・パワー・メイクアップ！！」' },
+              { speaker: '🔥 火川レイ', avatar: '🔥', face: 'face_rei.png', text: '「神社の巫女を怒らせたらどうなるか、思い知らせてあげる！ マーズ・パワー・メイクアップ！！」', transformMovie: 'movie_red.mp4', transformTitle: '🔥 マーズ・パワー・メイクアップ！ 🔥' },
               { speaker: '🔥 セーラーマーズ', avatar: '🔥', face: 'face_rei.png', text: '「悪霊退散！ あたしの炎で焼き払うわよ！（🔴赤の必殺技『拡大ボム』が解禁！）」' },
               { speaker: '😈 四天王ジェダイト', avatar: '😈', face: 'face_jadeite.png', text: '「小賢しいセーラー戦士が3人も揃ったか…だが私の幻惑と空間操作からは逃れられん！」' },
               { speaker: '🌙 セーラームーン', avatar: '🌙', face: 'face_usagi.png', text: '「みんなの大切な日常を奪うなんて絶対許さない！ 3人の力を合わせておしおきよ！」' }
@@ -4434,13 +4636,13 @@
             enemyRageDmg: 100,
             bombExplodeDmg: 95,
             bombInitialTimer: 5,
-            hazardKey: 'chain',
+            hazardKey: 'dark_crystal',
             hazardCounts: { 75: 3, 50: 4, 25: 5 },
             sealTurns: 2,
             unlockedColors: ['white', 'blue', 'red', 'green'], // セーラージュピター（緑）合流！
             allowTuxedo: true,
             introDialogs: [
-              { speaker: '⚡ 木野まこと', avatar: '⚡', face: 'face_makoto.png', text: '「恋する女の子の純粋な気持ちをもてあそぶなんて、あたしが許さないよ！ ジュピター・パワー・メイクアップ！！」' },
+              { speaker: '⚡ 木野まこと', avatar: '⚡', face: 'face_makoto.png', text: '「恋する女の子の純粋な気持ちをもてあそぶなんて、あたしが許さないよ！ ジュピター・パワー・メイクアップ！！」', transformMovie: 'movie_green.mp4', transformTitle: '⚡ ジュピター・パワー・メイクアップ！ ⚡' },
               { speaker: '⚡ セーラージュピター', avatar: '⚡', face: 'face_makoto.png', text: '「しびれるくらい後悔させるよ！（🟢緑の必殺技『縦2列シュープリーム・サンダー』が解禁！）」' },
               { speaker: '👯 カストル＆ポルクス', avatar: '👯', face: 'face_castor_pollux.png', text: '「「私たちの双子連携からは誰も逃げられないわ！ まとめて引き裂いてあげる！」」' }
             ],
@@ -4502,7 +4704,7 @@
             allowTuxedo: true,
             introDialogs: [
               { speaker: '👾 ゲーセン＆ボクシー', avatar: '👾', face: 'face_gesen_boxy.png', text: '「ケケケ！ 虹水晶は渡さねぇぜ！ ゲーム空間と高速パンチでノックアウトだ！」' },
-              { speaker: '💛 愛野美奈子', avatar: '💛', face: 'face_minako.png', text: '「お待たせ！ 愛の天罰、落とさせていただきます！ ヴィーナス・パワー・メイクアップ！！」' },
+              { speaker: '💛 愛野美奈子', avatar: '💛', face: 'face_minako.png', text: '「お待たせ！ 愛の天罰、落とさせていただきます！ ヴィーナス・パワー・メイクアップ！！」', transformMovie: 'movie_yellow.mp4', transformTitle: '💛 ヴィーナス・パワー・メイクアップ！ 💛' },
               { speaker: '💛 セーラーヴィーナス', avatar: '💛', face: 'face_minako.png', text: '「ついに5人のセーラー戦士が揃ったわね！（🟡黄の必殺技『×字クレッセント・ビーム』解禁！全5色使用可能！）」' }
             ],
             outroDialogs: [
@@ -4582,7 +4784,7 @@
             enemyRageDmg: 125,
             bombExplodeDmg: 120,
             bombInitialTimer: 4,
-            hazardKey: 'chain',
+            hazardKey: 'dark_crystal',
             hazardCounts: { 75: 4, 50: 5, 25: 6 },
             sealTurns: 3,
             unlockedColors: ['white', 'blue', 'red', 'green', 'yellow'],
@@ -4606,7 +4808,7 @@
             enemyRageDmg: 140,
             bombExplodeDmg: 130,
             bombInitialTimer: 4,
-            hazardKey: 'chain',
+            hazardKey: 'dark_crystal',
             hazardCounts: { 75: 5, 50: 5, 25: 6 },
             sealTurns: 3,
             unlockedColors: ['white', 'blue', 'red', 'green', 'yellow'],
@@ -4704,7 +4906,7 @@
             enemyRageDmg: 148,
             bombExplodeDmg: 140,
             bombInitialTimer: 4,
-            hazardKey: 'chain',
+            hazardKey: 'dark_crystal',
             hazardCounts: { 75: 5, 50: 6, 25: 7 },
             sealTurns: 3,
             unlockedColors: ['white', 'blue', 'red', 'green', 'yellow'],
@@ -4809,8 +5011,10 @@
     const storyHubScreenEl = document.getElementById('story-hub-screen');
     const hubCrystalCountEl = document.getElementById('hub-crystal-count');
     const tabBtnStagesEl = document.getElementById('tab-btn-stages');
+    const tabBtnTrainingEl = document.getElementById('tab-btn-training');
     const tabBtnUpgradesEl = document.getElementById('tab-btn-upgrades');
     const tabContentStagesEl = document.getElementById('tab-content-stages');
+    const tabContentTrainingEl = document.getElementById('tab-content-training');
     const tabContentUpgradesEl = document.getElementById('tab-content-upgrades');
     const btnHubToTitleEl = document.getElementById('btn-hub-to-title');
     const storyDialogOverlayEl = document.getElementById('story-dialog-overlay');
@@ -5084,14 +5288,21 @@
     }
 
     function switchStoryHubTab(tabName) {
-      const isStages = tabName === 'stages';
-      tabBtnStagesEl.classList.toggle('active', isStages);
-      tabBtnUpgradesEl.classList.toggle('active', !isStages);
-      tabContentStagesEl.classList.toggle('hidden', !isStages);
-      tabContentUpgradesEl.classList.toggle('hidden', isStages);
+      tabBtnStagesEl.classList.toggle('active', tabName === 'stages');
+      if (tabBtnTrainingEl) tabBtnTrainingEl.classList.toggle('active', tabName === 'training');
+      tabBtnUpgradesEl.classList.toggle('active', tabName === 'upgrades');
+
+      tabContentStagesEl.classList.toggle('hidden', tabName !== 'stages');
+      if (tabContentTrainingEl) tabContentTrainingEl.classList.toggle('hidden', tabName !== 'training');
+      tabContentUpgradesEl.classList.toggle('hidden', tabName !== 'upgrades');
+
+      if (tabName === 'training') {
+        renderTrainingTab();
+      }
     }
 
     tabBtnStagesEl.addEventListener('click', () => switchStoryHubTab('stages'));
+    if (tabBtnTrainingEl) tabBtnTrainingEl.addEventListener('click', () => switchStoryHubTab('training'));
     tabBtnUpgradesEl.addEventListener('click', () => switchStoryHubTab('upgrades'));
     if (btnOpenStoryHubEl) {
       btnOpenStoryHubEl.addEventListener('click', (e) => {
@@ -5240,7 +5451,7 @@
     if (btnSelectFreeEl) {
       btnSelectFreeEl.addEventListener('click', (e) => {
         e.stopPropagation();
-        showFreeDiffSelect();
+        openStoryHub('training');
       });
     }
 
@@ -5636,6 +5847,91 @@
         }
         tabContentUpgradesEl.appendChild(uCard);
       }
+
+      // 3. 特訓タブの描画更新
+      renderTrainingTab();
+    }
+
+    // 全戦士・アビリティの育成が全て最大（Lv.MAX）かチェックする関数
+    function isAllUpgradesMaxed() {
+      if (!saveData.upgrades) return false;
+      for (const def of UPGRADE_DEFINITIONS) {
+        const lv = saveData.upgrades[def.key] || 0;
+        if (lv < def.maxLv) return false;
+      }
+      return true;
+    }
+
+    // 守護戦士の特訓タブ（旧フリーバトル統合・経験値稼ぎ）の描画
+    function renderTrainingTab() {
+      if (!tabContentTrainingEl) return;
+      tabContentTrainingEl.innerHTML = '';
+
+      const introEl = document.createElement('div');
+      introEl.className = 'upgrade-section-label';
+      introEl.style.marginBottom = '8px';
+      introEl.textContent = '【守護戦士の実戦特訓】何度でも挑戦可能！勝利すると大量の育成クリスタルを獲得！';
+      tabContentTrainingEl.appendChild(introEl);
+
+      const allMaxed = isAllUpgradesMaxed();
+
+      for (const course of TRAINING_COURSES) {
+        const isCleared = !!(saveData.clearedTraining && saveData.clearedTraining[course.id]);
+        let isUnlocked = true;
+        let lockReason = '';
+
+        if (course.id === 'hard') {
+          isUnlocked = !!(saveData.clearedTraining && (saveData.clearedTraining.normal || saveData.clearedTraining.hard || saveData.clearedTraining.hell)) || !!(saveData.clearedDiffs && saveData.clearedDiffs.normal);
+          lockReason = '（※中級クリアで解放）';
+        } else if (course.id === 'hell') {
+          isUnlocked = isHellUnlocked || !!(saveData.clearedTraining && saveData.clearedTraining.hard) || !!(saveData.clearedDiffs && saveData.clearedDiffs.hard);
+          lockReason = '（※上級クリアで解放）';
+        } else if (course.id === 'chaos') {
+          isUnlocked = allMaxed;
+          lockReason = '（※全戦士・アビリティ育成MAXで解放！）';
+        }
+
+        const card = document.createElement('div');
+        card.className = `training-card${!isUnlocked ? ' locked' : ''}`;
+
+        const clearBadge = isCleared ? '<span style="color:#2ecc71; font-size:11px; font-weight:900;">✓ 制覇済</span>' : '';
+        const titleText = isUnlocked ? course.title : `${course.title} ${lockReason}`;
+
+        card.innerHTML = `
+          <div class="training-card-top">
+            <span class="training-card-title">${titleText}</span>
+            ${clearBadge}
+          </div>
+          <div class="training-card-desc">${course.desc}</div>
+          <div class="training-card-bottom">
+            <span class="training-reward-badge">クリア報酬: 🌙 +${course.reward}</span>
+            <button type="button" class="training-start-btn" ${!isUnlocked ? 'disabled' : ''}>
+              ${!isUnlocked ? '🔒 ロック' : '⚔️ 特訓開始'}
+            </button>
+          </div>
+        `;
+
+        const startBtn = card.querySelector('.training-start-btn');
+        if (startBtn && isUnlocked) {
+          startBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            startTrainingBattle(course.id);
+          });
+        }
+
+        tabContentTrainingEl.appendChild(card);
+      }
+    }
+
+    // 特訓バトル出撃関数
+    function startTrainingBattle(courseKey) {
+      currentTrainingCourse = courseKey;
+      const course = TRAINING_COURSES.find(c => c.id === courseKey) || TRAINING_COURSES[0];
+      applyDifficulty(course.diffKey);
+      gameMode = 'training';
+      storyHubScreenEl.classList.add('hidden');
+      initGame(false);
+      statusMessageEl.textContent = `⚔️【${course.title}】開始！ 敵を撃破して 🌙+${course.reward} を手に入れよう！`;
     }
 
     // ストーリー会話ダイアログを順番に表示する非同期関数（設定で自動スキップがONの場合は即完了）
@@ -5683,8 +5979,21 @@
           resolve();
         };
 
-        const nextStep = (e) => {
+        let isTransitioning = false;
+        const nextStep = async (e) => {
           if (e) e.stopPropagation();
+          if (isTransitioning) return;
+
+          const currentItem = dialogs[idx];
+          // 変身セリフの場合、次のセリフに進む前に変身ムービーを全画面再生！
+          if (currentItem && currentItem.transformMovie) {
+            isTransitioning = true;
+            storyDialogOverlayEl.classList.add('hidden');
+            await playCutinMovie(currentItem.transformMovie, currentItem.transformTitle || 'メイクアップ！', true, true);
+            storyDialogOverlayEl.classList.remove('hidden');
+            isTransitioning = false;
+          }
+
           idx++;
           if (idx >= dialogs.length) {
             cleanupAndFinish();
@@ -6887,6 +7196,7 @@
         if (board[r][c]) {
           board[r][c].hazard = hazardObj.id;
           board[r][c].bombTimer = hazardObj.id === 'bomb' ? BOMB_INITIAL_TIMER : 0;
+          board[r][c].crystalHp = hazardObj.id === 'dark_crystal' ? 2 : 0;
         }
       }
       renderBoard();
@@ -6938,13 +7248,18 @@
               cell.appendChild(badge);
             }
 
-            // お邪魔状態（氷・鎖・爆弾）の装飾
+            // お邪魔状態（氷結・暗黒結晶・爆弾）の装飾
             if (block.hazard === 'ice') {
               cell.classList.add('hazard-ice');
               appendHazardOverlayImg(cell, HAZARD_IMAGES.ice);
-            } else if (block.hazard === 'chain') {
-              cell.classList.add('hazard-chain');
-              appendHazardOverlayImg(cell, HAZARD_IMAGES.chain);
+            } else if (block.hazard === 'dark_crystal' || block.hazard === 'chain') {
+              cell.classList.add('hazard-dark-crystal');
+              const hp = (typeof block.crystalHp === 'number') ? block.crystalHp : 2;
+              if (hp === 1) cell.classList.add('crystal-cracked');
+              const crystalBadge = document.createElement('div');
+              crystalBadge.className = 'dark-crystal-badge';
+              crystalBadge.textContent = `💎${hp}/2`;
+              cell.appendChild(crystalBadge);
             } else if (block.hazard === 'bomb') {
               appendHazardOverlayImg(cell, HAZARD_IMAGES.bomb);
               const bombBadge = document.createElement('div');
@@ -7001,11 +7316,11 @@
       cell.appendChild(hImg);
     }
 
-    // ブロックがドラッグ移動可能かチェック（氷・鎖は直接ドラッグ不可）
+    // ブロックがドラッグ移動可能かチェック（氷結・暗黒結晶は直接ドラッグ不可）
     function canMoveBlock(r, c) {
       const b = board[r][c];
       if (!b) return false;
-      if (b.hazard === 'ice' || b.hazard === 'chain') {
+      if (b.hazard === 'ice' || b.hazard === 'chain' || b.hazard === 'dark_crystal') {
         return false;
       }
       return true;
@@ -7017,14 +7332,15 @@
       e.preventDefault();
       clearHintTimer();
 
-      // 氷・鎖で動かせないブロックでも、★必殺技ブロックならクリックで説明ウィンドウを開けるようにする
+      // 氷結・暗黒結晶で動かせないブロックでも、★必殺技ブロックならクリックで説明ウィンドウを開けるようにする
       if (!canMoveBlock(r, c)) {
         if (board[r][c].isSpecial) {
           toggleSpecialBlockGuide(board[r][c].id);
           return;
         }
-        const hName = board[r][c].hazard === 'ice' ? '❄️氷' : '⛓️鎖';
-        statusMessageEl.textContent = `${hName}で固められたブロックは直接動かせません！マッチさせて解除しよう！`;
+        let hName = '❄️氷結';
+        if (board[r][c].hazard === 'dark_crystal') hName = '💎暗黒結晶';
+        statusMessageEl.textContent = `${hName}で固められたブロックは直接動かせません！周囲でマッチさせて解除・粉砕しよう！`;
         return;
       }
 
@@ -8569,15 +8885,24 @@
           }
         }
 
-        // 消去されるマスの上下左右に隣接している「氷（ice）」も熱で溶けて解除される（パズル定番の気持ちいいルール）
+        // 消去されるマスの上下左右に隣接している「氷（ice）」は熱で溶け、「暗黒結晶（dark_crystal）」は衝撃でヒビ割れ・粉砕！
+        const damagedCrystals = new Map();
         for (const key of matchedSet) {
           const [mr, mc] = key.split(',').map(Number);
           const dirs = [{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }];
           for (const { dr, dc } of dirs) {
             const nr = mr + dr;
             const nc = mc + dc;
-            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc] && board[nr][nc].hazard === 'ice') {
-              unfreezeSet.add(`${nr},${nc}`);
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc]) {
+              if (board[nr][nc].hazard === 'ice') {
+                unfreezeSet.add(`${nr},${nc}`);
+              } else if (board[nr][nc].hazard === 'dark_crystal') {
+                const cKey = `${nr},${nc}`;
+                if (!damagedCrystals.has(cKey)) {
+                  const curHp = (typeof board[nr][nc].crystalHp === 'number') ? board[nr][nc].crystalHp : 2;
+                  damagedCrystals.set(cKey, curHp - 1);
+                }
+              }
             }
           }
         }
@@ -8639,12 +8964,30 @@
         launchShotsToEnemy(shotCells, normalDamage, false);
         await wait(160);
 
-        // 氷・鎖の解除反映
+        // 氷の解除反映
         for (const key of unfreezeSet) {
           const [ur, uc] = key.split(',').map(Number);
           if (board[ur][uc]) {
             board[ur][uc].hazard = null;
           }
+        }
+
+        // 暗黒結晶の耐久度減少・粉砕反映
+        let crystalShatteredCount = 0;
+        for (const [cKey, newHp] of damagedCrystals.entries()) {
+          const [cr, cc] = cKey.split(',').map(Number);
+          if (board[cr][cc] && board[cr][cc].hazard === 'dark_crystal') {
+            if (newHp <= 0) {
+              board[cr][cc].hazard = null;
+              board[cr][cc].crystalHp = 0;
+              crystalShatteredCount++;
+            } else {
+              board[cr][cc].crystalHp = newHp;
+            }
+          }
+        }
+        if (crystalShatteredCount > 0) {
+          statusMessageEl.textContent += ` 💎暗黒結晶 ${crystalShatteredCount}個粉砕！`;
         }
 
         // 盤面から通常消去（爆弾ブロックが含まれていた場合はここで安全に消去される！）
@@ -8850,6 +9193,34 @@
         return;
       }
 
+      // ⚔️ 守護戦士の特訓モードクリア処理
+      if (gameMode === 'training') {
+        const course = TRAINING_COURSES.find(c => c.id === currentTrainingCourse) || TRAINING_COURSES[0];
+        const reward = course.reward || 300;
+        if (!saveData.clearedTraining) saveData.clearedTraining = {};
+        saveData.clearedTraining[course.id] = true;
+        saveData.crystals = (saveData.crystals || 0) + reward;
+        if (course.id === 'hard' || course.id === 'hell') {
+          unlockHellMode();
+        }
+        writeSaveData();
+
+        enemyBoxEl.classList.add('defeated');
+        clearCenterBannerEl.classList.remove('hidden');
+        clearCenterBannerEl.textContent = isTuxedoRoseFinish
+          ? '🌹 TUXEDO MASK FINISH!! 🌹'
+          : '🎉 TRAINING CLEAR!! 🎉';
+        await wait(1200);
+        clearCenterBannerEl.classList.add('hidden');
+        await playCutinMovie(CLEAR_MOVIE, isTuxedoRoseFinish ? '🌹 奇跡のバラフィニッシュ！ 🌹' : `🎉 特訓修了！ 🌙+${reward} 獲得！ 🎉`, true);
+
+        openStoryHub('training');
+        statusMessageEl.textContent = isTuxedoRoseFinish
+          ? `🌹 奇跡のタキシード仮面トドメ特訓修了！！ 経験値クリスタル 🌙+${reward} 獲得！（所持: 🌙${saveData.crystals}）`
+          : `⚔️【${course.title}】クリア！ 経験値クリスタル 🌙+${reward} を獲得！（所持: 🌙${saveData.crystals}） 拠点で戦士を育成しよう！`;
+        return;
+      }
+
       statusMessageEl.textContent = isTuxedoRoseFinish
         ? '🌹 なんとタキシード仮面がトドメ撃破！！ 🌹'
         : '敵を撃破！ ゲームクリア！';
@@ -8868,10 +9239,13 @@
 
       const clearedDiffId = currentDifficulty.id;
       const wasHellUnlocked = isHellUnlocked;
+      const diffRewards = { easy: 150, normal: 300, hard: 500, hell: 1000, chaos: 3000 };
+      const earnedCrystal = diffRewards[clearedDiffId] || 300;
+      saveData.crystals = (saveData.crystals || 0) + earnedCrystal;
       if (clearedDiffId && saveData.clearedDiffs) {
         saveData.clearedDiffs[clearedDiffId] = true;
-        writeSaveData();
       }
+      writeSaveData();
       if (clearedDiffId === 'hard' || clearedDiffId === 'hell') {
         unlockHellMode();
       }
@@ -9533,6 +9907,7 @@
           board[r][c].bombTimer = hazardTypeObj.id === 'bomb'
             ? (customBombTimer !== null ? customBombTimer : BOMB_INITIAL_TIMER)
             : 0;
+          board[r][c].crystalHp = hazardTypeObj.id === 'dark_crystal' ? 2 : 0;
         }
       }
       renderBoard();
