@@ -1266,11 +1266,12 @@
         filter: brightness(1) drop-shadow(0 0 2px #fff200);
       }
     }
-    .board-cell.hint-pulse {
-      animation: hintPulseGlow 1.2s ease-in-out infinite alternate !important;
-      z-index: 20 !important;
-      outline: 2.5px solid #fff200 !important;
-      outline-offset: 1px;
+    .cell.hint-pulse {
+      animation: hintPulseGlow 0.9s ease-in-out infinite alternate !important;
+      z-index: 25 !important;
+      outline: 3px solid #fff200 !important;
+      outline-offset: -1px;
+      box-shadow: 0 0 16px #fff200, 0 0 24px #ff9ff3, inset 0 0 10px rgba(255, 242, 0, 0.7) !important;
       border-radius: 8px;
     }
 
@@ -3545,13 +3546,6 @@
           <span class="diff-btn-sub">TVアニメ原作再現！仲間を集め、銀水晶を巡る決戦へ</span>
           <span class="mode-badge-stat" id="title-story-badge">STAGE 1 挑戦中 ／ 🌙 0</span>
         </button>
-        <button type="button" class="difficulty-btn normal" id="btn-select-free">
-          <span class="diff-btn-main">
-            ⚔️ 守護戦士の特訓
-            <span class="diff-btn-sub-label">（育成クリスタル獲得）</span>
-          </span>
-          <span class="diff-btn-sub">EASY〜CHAOSの特訓で経験値🌙を大量獲得！</span>
-        </button>
         <button type="button" class="difficulty-btn hell" id="btn-select-endless" style="background: linear-gradient(90deg, #4834d4, #686de0); border-color: #f368e0;">
           <span class="diff-btn-main">
             🌌 ENDLESS RUSH
@@ -3718,8 +3712,8 @@
       <div class="story-tab-content hidden" id="tab-content-upgrades"></div>
 
       <div class="story-hub-footer">
-        <button type="button" class="hub-back-btn" id="btn-hub-to-title">🏠 タイトルへ戻る</button>
-        <span style="font-size: 10px; color: #dcdde1;">※育成効果はストーリー＆フリー両方に反映！</span>
+        <button type="button" class="hub-back-btn" id="btn-hub-to-title">◀ モード選択に戻る</button>
+        <span style="font-size: 10px; color: #dcdde1;">※育成効果はストーリー＆特訓両方に反映！</span>
       </div>
     </div>
 
@@ -3939,6 +3933,7 @@
           <button type="button" class="debug-btn accent-gold" id="dbg-story-add-crystal">🌙 クリスタル+2000</button>
           <button type="button" class="debug-btn accent-gold" id="dbg-story-max-upgrade">👑 全育成MAX</button>
           <button type="button" class="debug-btn" id="dbg-story-reset-save">🔄 育成＆進行リセット</button>
+          <button type="button" class="debug-btn accent-gold" id="dbg-test-hint">💡 ヒントを今すぐ表示</button>
         </div>
       </div>
     </div>
@@ -4168,7 +4163,7 @@
         id: 'easy',
         title: '🌱 初級：守護戦士の基礎組手',
         desc: '敵HP 2200 / 攻撃間隔 6T。基本のお邪魔に慣れるための基礎特訓。',
-        reward: 150,
+        reward: 75,
         diffKey: 'easy',
         enemyName: 'モルガ（実戦幻影）'
       },
@@ -4176,7 +4171,7 @@
         id: 'normal',
         title: '⚔️ 中級：セーラー実戦強化',
         desc: '敵HP 3400 / 攻撃間隔 5T。氷結とお邪魔に素早く対応する実戦訓練。',
-        reward: 300,
+        reward: 150,
         diffKey: 'normal',
         enemyName: 'ネフライト（実戦幻影）'
       },
@@ -4184,7 +4179,7 @@
         id: 'hard',
         title: '🔥 上級：暗黒四天王の猛攻',
         desc: '敵HP 4800 / 攻撃間隔 4T。時限爆弾と猛攻を乗り切る上級修練。',
-        reward: 500,
+        reward: 250,
         diffKey: 'hard',
         enemyName: 'クンツァイト（実戦幻影）'
       },
@@ -4192,7 +4187,7 @@
         id: 'hell',
         title: '💀 地獄：ジェダイド・ヘルラッシュ',
         desc: '敵HP 6800 / 攻撃間隔 3T。極限の猛攻とお邪魔連発の超難関特訓！',
-        reward: 1000,
+        reward: 500,
         diffKey: 'hell',
         enemyName: '極限ジェダイド（地獄）'
       },
@@ -4200,7 +4195,7 @@
         id: 'chaos',
         title: '🌌 終焉：カオス・メタリア修練（極限難易度）',
         desc: '敵HP 11000 / 攻撃間隔 2T / 暗黒結晶＆爆弾！全戦士育成MAXで挑む究極の試練！',
-        reward: 3000,
+        reward: 1500,
         diffKey: 'chaos',
         enemyName: '終焉のカオス・メタリア'
       }
@@ -7666,6 +7661,8 @@
           const block = board[r][c];
           const cell = document.createElement('div');
           cell.className = 'cell';
+          cell.setAttribute('data-r', r);
+          cell.setAttribute('data-c', c);
 
           if (block) {
             cell.classList.add(`type-${block.id}`);
@@ -9764,8 +9761,8 @@
 
       const clearedDiffId = currentDifficulty.id;
       const wasHellUnlocked = isHellUnlocked;
-      const diffRewards = { easy: 150, normal: 300, hard: 500, hell: 1000, chaos: 3000 };
-      const earnedCrystal = diffRewards[clearedDiffId] || 300;
+      const diffRewards = { easy: 75, normal: 150, hard: 250, hell: 500, chaos: 1500 };
+      const earnedCrystal = diffRewards[clearedDiffId] || 150;
       saveData.crystals = (saveData.crystals || 0) + earnedCrystal;
       if (clearedDiffId && saveData.clearedDiffs) {
         saveData.clearedDiffs[clearedDiffId] = true;
@@ -10198,7 +10195,7 @@
     function clearHintHighlight() {
       if (currentHintCells && currentHintCells.length > 0) {
         currentHintCells.forEach(pos => {
-          const cellEl = document.querySelector(`.board-cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
+          const cellEl = document.querySelector(`.cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
           if (cellEl) cellEl.classList.remove('hint-pulse');
         });
         currentHintCells = [];
@@ -10221,12 +10218,12 @@
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const b1 = board[r][c];
-          if (!b1) continue;
+          if (!b1 || !canMoveBlock(r, c)) continue;
 
           // 1. 右隣とのスワップ判定
           if (c + 1 < COLS) {
             const b2 = board[r][c + 1];
-            if (b2) {
+            if (b2 && canMoveBlock(r, c + 1)) {
               // ★必殺技を含むペアなら有効
               if (b1.isSpecial || b2.isSpecial) {
                 return [{ r, c }, { r, c: c + 1 }];
@@ -10244,7 +10241,7 @@
           // 2. 下隣とのスワップ判定
           if (r + 1 < ROWS) {
             const b2 = board[r + 1][c];
-            if (b2) {
+            if (b2 && canMoveBlock(r + 1, c)) {
               // ★必殺技を含むペアなら有効
               if (b1.isSpecial || b2.isSpecial) {
                 return [{ r, c }, { r: r + 1, c }];
@@ -10263,8 +10260,8 @@
       return null;
     }
 
-    // 操作が途切れて5秒経過したらヒントを表示するタイマーを開始
-    function startHintTimer(delayMs = 5000) {
+    // 操作が途切れて一定時間（4秒）経過したらヒントを表示するタイマーを開始
+    function startHintTimer(delayMs = 4000) {
       clearHintTimer();
       if (isLocked || isGameClear || playerHp <= 0) return;
 
@@ -10274,9 +10271,10 @@
         if (move && move.length === 2) {
           currentHintCells = move;
           move.forEach(pos => {
-            const cellEl = document.querySelector(`.board-cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
+            const cellEl = document.querySelector(`.cell[data-r="${pos.r}"][data-c="${pos.c}"]`);
             if (cellEl) cellEl.classList.add('hint-pulse');
           });
+          statusMessageEl.textContent = '💡 ヒント：金色に光っているブロックをスワイプしてみよう！';
         }
       }, delayMs);
     }
@@ -10700,6 +10698,15 @@
       debugPanelEl.classList.add('hidden');
       statusMessageEl.textContent = '🛠️[DEBUG] ストーリー進行状況＆育成データを初期状態にリセットしました！';
     });
+
+    // [デバッグ15] 💡 ヒントを今すぐテスト表示
+    const dbgTestHintEl = document.getElementById('dbg-test-hint');
+    if (dbgTestHintEl) {
+      dbgTestHintEl.addEventListener('click', () => {
+        debugPanelEl.classList.add('hidden');
+        startHintTimer(0);
+      });
+    }
 
     // 初回起動時は盤面を準備した上でタイトル画面を表示して待機
     initGame();
