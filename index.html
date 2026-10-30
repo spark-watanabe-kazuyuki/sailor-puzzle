@@ -4064,6 +4064,9 @@
     <div id="video-tap-skip-hint" class="video-tap-skip-hint">👆 画面タップでスキップ</div>
   </div>
 
+  <!-- 単一BGM再生専用オーディオ要素（二重・多重再生を物理的に完全防止） -->
+  <audio id="game-bgm-player" loop preload="auto" style="display:none;"></audio>
+
   <script>
     // ===== 盤面サイズとゲームバランス定数 =====
     const ROWS = 6;
@@ -4209,13 +4212,29 @@
     class SoundManager {
       constructor() {
         this.ctx = null;
-        this.bgmAudio = null;
+        this.bgmEl = null;
         this.currentBgmKey = null;
+        this.isMoviePausingBgm = false;
         this.bgmVolume = 0.4;
         this.seVolume = 0.7;
         this.bgmEnabled = true;
         this.seEnabled = true;
         this.externalAudioMap = new Map();
+      }
+
+      getBgmEl() {
+        if (!this.bgmEl) {
+          this.bgmEl = document.getElementById('game-bgm-player');
+          if (!this.bgmEl) {
+            this.bgmEl = new Audio();
+            this.bgmEl.id = 'game-bgm-player';
+            this.bgmEl.loop = true;
+            document.body.appendChild(this.bgmEl);
+          }
+          this.bgmEl.loop = true;
+          this.bgmEl.volume = this.bgmVolume;
+        }
+        return this.bgmEl;
       }
 
       initContext() {
@@ -4226,19 +4245,100 @@
           }
         }
         if (this.ctx && this.ctx.state === 'suspended') {
-          this.ctx.resume();
+          this.ctx.resume().catch(() => {});
         }
       }
 
       setBgmVolume(val) {
         this.bgmVolume = Math.max(0, Math.min(1, val));
-        if (this.bgmAudio) {
-          this.bgmAudio.volume = this.bgmVolume;
+        const el = this.getBgmEl();
+        if (el) {
+          el.volume = this.bgmVolume;
         }
       }
 
       setSeVolume(val) {
         this.seVolume = Math.max(0, Math.min(1, val));
+      }
+
+      playBgm(key) {
+        if (!this.bgmEnabled) return;
+        const el = this.getBgmEl();
+        if (!el) return;
+
+        // すでに同じBGMが再生中なら、絶対に重複して再生しない
+        if (this.currentBgmKey === key && !el.paused) {
+          return;
+        }
+
+        this.currentBgmKey = key;
+        this.isMoviePausingBgm = false;
+        this.initContext();
+
+        // 既存の再生を確実に停止して巻き戻す
+        try {
+          el.pause();
+          el.currentTime = 0;
+        } catch(e) {}
+
+        el.volume = this.bgmVolume;
+        el.loop = true;
+
+        const primarySrc = `audio/bgm_${key}.mp3`;
+        const altSrc = `bgm_${key}.mp3`;
+
+        el.onerror = () => {
+          if (el.src && el.src.indexOf(primarySrc) !== -1) {
+            el.onerror = () => {
+              el.onerror = null;
+              this.currentBgmKey = null;
+            };
+            el.src = altSrc;
+            el.play().catch(() => {});
+          } else {
+            el.onerror = null;
+            this.currentBgmKey = null;
+          }
+        };
+
+        el.src = primarySrc;
+        el.play().catch(() => {});
+      }
+
+      stopBgm() {
+        const el = this.getBgmEl();
+        if (el) {
+          try {
+            el.pause();
+            el.currentTime = 0;
+            el.removeAttribute('src');
+            el.load();
+          } catch(e) {}
+        }
+        this.currentBgmKey = null;
+        this.isMoviePausingBgm = false;
+      }
+
+      // 必殺技・変身ムービー再生時の一時停止
+      pauseBgmForMovie() {
+        const el = this.getBgmEl();
+        if (el && !el.paused) {
+          try {
+            el.pause();
+            this.isMoviePausingBgm = true;
+          } catch(e) {}
+        }
+      }
+
+      // ムービー終了時のBGM再開
+      resumeBgmAfterMovie() {
+        if (this.isMoviePausingBgm) {
+          this.isMoviePausingBgm = false;
+          const el = this.getBgmEl();
+          if (el && el.src && this.currentBgmKey && this.bgmEnabled) {
+            el.play().catch(() => {});
+          }
+        }
       }
 
       playSe(key, options = {}) {
@@ -4405,41 +4505,6 @@
           osc.start(now);
           osc.stop(now + 0.1);
         }
-      }
-
-      playBgm(key) {
-        if (!this.bgmEnabled) return;
-        if (this.currentBgmKey === key && this.bgmAudio && !this.bgmAudio.paused) return;
-        this.stopBgm();
-        this.currentBgmKey = key;
-        this.initContext();
-
-        const audio = new Audio(`audio/bgm_${key}.mp3`);
-        audio.loop = true;
-        audio.volume = this.bgmVolume;
-        audio.play().then(() => {
-          this.bgmAudio = audio;
-        }).catch(() => {
-          const altAudio = new Audio(`bgm_${key}.mp3`);
-          altAudio.loop = true;
-          altAudio.volume = this.bgmVolume;
-          altAudio.play().then(() => {
-            this.bgmAudio = altAudio;
-          }).catch(() => {
-            this.bgmAudio = null;
-          });
-        });
-      }
-
-      stopBgm() {
-        if (this.bgmAudio) {
-          try {
-            this.bgmAudio.pause();
-            this.bgmAudio.currentTime = 0;
-          } catch(e) {}
-          this.bgmAudio = null;
-        }
-        this.currentBgmKey = null;
       }
     }
 
@@ -7216,7 +7281,7 @@
       } else if (gameMode === 'story') {
         openStoryHub('stages');
       } else {
-        initGame(false);
+        initGame(false, false);
         showTitleScreen('diff');
       }
     });
@@ -7334,13 +7399,15 @@
     }
 
     // ゲームの初期化（retrySameCondition = true の場合は、同じ敵のお邪魔タイプ＆同じ初期盤面配置でステージ最初からやり直す）
-    function initGame(retrySameCondition = false) {
-      if (gameMode === 'endless') {
-        soundManager.playBgm('chaos');
-      } else if (currentDifficulty.id === 'chaos' || (gameMode === 'story' && currentStoryStageId === 6)) {
-        soundManager.playBgm('boss');
-      } else {
-        soundManager.playBgm('battle');
+    function initGame(retrySameCondition = false, triggerBgm = true) {
+      if (triggerBgm) {
+        if (gameMode === 'endless') {
+          soundManager.playBgm('chaos');
+        } else if (currentDifficulty.id === 'chaos' || (gameMode === 'story' && currentStoryStageId === 6)) {
+          soundManager.playBgm('boss');
+        } else {
+          soundManager.playBgm('battle');
+        }
       }
 
       if (gameMode === 'story') {
@@ -9772,7 +9839,7 @@
         unlockHellMode();
       }
 
-      initGame(false);
+      initGame(false, false);
       let clearSubMsg = isTuxedoRoseFinish
         ? '🌹 奇跡のタキシード仮面フィニッシュ達成！！ 見事トドメを刺しました！ 🌹'
         : '🎉 CONGRATULATIONS! 見事敵を撃破しました！ 🎉';
@@ -10128,6 +10195,9 @@
         // 設定でムービーOFFの場合は動画をロードせず即座に完了
         return Promise.resolve();
       }
+      // ムービー再生中はBGMを一時停止（ムービーの音声がクリアに聞こえるように）
+      soundManager.pauseBgmForMovie();
+
       return new Promise(resolve => {
         let finished = false;
         const skipBtn = document.getElementById('btn-skip-video');
@@ -10145,6 +10215,8 @@
           specialVideoEl.load();
           videoOverlayEl.classList.remove('active');
           specialBannerEl.classList.remove('center-banner');
+          // ムービー終了後にBGMを自動再開
+          soundManager.resumeBgmAfterMovie();
           resolve();
         };
 
@@ -10708,8 +10780,8 @@
       });
     }
 
-    // 初回起動時は盤面を準備した上でタイトル画面を表示して待機
-    initGame();
+    // 初回起動時は盤面を準備した上でタイトル画面を表示して待機（初回はタイトルBGMを優先するためBGMトリガーなし）
+    initGame(false, false);
     showTitleScreen();
   </script>
 </body>
