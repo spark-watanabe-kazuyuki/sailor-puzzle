@@ -3618,6 +3618,13 @@
           <button type="button" class="setting-toggle-btn" id="cfg-play-movie">ON</button>
         </div>
         <div class="setting-item-row">
+          <div>
+            <div class="setting-item-label">💡 操作ヒント機能</div>
+            <div class="setting-item-sub">OFFにすると無操作時のヒント点滅を停止します</div>
+          </div>
+          <button type="button" class="setting-toggle-btn" id="cfg-show-hint">ON</button>
+        </div>
+        <div class="setting-item-row">
           <div style="flex: 1; margin-right: 14px;">
             <div class="setting-item-label">🎵 BGM 音量</div>
             <div class="setting-item-sub">外部BGMファイル配置で再生（無音時はOFF）</div>
@@ -4767,6 +4774,7 @@
       settings: {
         autoSkipDialog: false,
         playMovie: true,
+        showHint: true,
         movieVolume: 45 // 0〜100%（デフォルト45%：程よく心地よい音量）
       },
       upgrades: {
@@ -5394,6 +5402,7 @@
     const btnCloseSettingsEl = document.getElementById('btn-close-settings');
     const cfgAutoSkipEl = document.getElementById('cfg-auto-skip');
     const cfgPlayMovieEl = document.getElementById('cfg-play-movie');
+    const cfgShowHintEl = document.getElementById('cfg-show-hint');
     const cfgMovieVolumeEl = document.getElementById('cfg-movie-volume');
     const cfgMovieVolumeLabelEl = document.getElementById('cfg-movie-volume-label');
     const cfgBgmVolumeEl = document.getElementById('cfg-bgm-volume');
@@ -5930,6 +5939,11 @@
         cfgPlayMovieEl.textContent = isPlay ? 'ON' : 'OFF';
         cfgPlayMovieEl.className = 'setting-toggle-btn ' + (isPlay ? '' : 'off');
       }
+      if (cfgShowHintEl) {
+        const isHint = !(saveData.settings && saveData.settings.showHint === false);
+        cfgShowHintEl.textContent = isHint ? 'ON' : 'OFF';
+        cfgShowHintEl.className = 'setting-toggle-btn ' + (isHint ? '' : 'off');
+      }
       if (cfgMovieVolumeEl) {
         const vol = (saveData.settings && typeof saveData.settings.movieVolume === 'number')
           ? saveData.settings.movieVolume
@@ -6004,8 +6018,21 @@
 
     if (cfgPlayMovieEl) {
       cfgPlayMovieEl.addEventListener('click', () => {
-        if (!saveData.settings) saveData.settings = { autoSkipDialog: false, playMovie: true, movieVolume: 45 };
+        if (!saveData.settings) saveData.settings = { autoSkipDialog: false, playMovie: true, showHint: true, movieVolume: 45 };
         saveData.settings.playMovie = !saveData.settings.playMovie;
+        writeSaveData();
+        updateSettingsUI();
+      });
+    }
+
+    if (cfgShowHintEl) {
+      cfgShowHintEl.addEventListener('click', () => {
+        if (!saveData.settings) saveData.settings = { autoSkipDialog: false, playMovie: true, showHint: true, movieVolume: 45 };
+        const currentVal = !(saveData.settings.showHint === false);
+        saveData.settings.showHint = !currentVal;
+        if (!saveData.settings.showHint) {
+          clearHintTimer();
+        }
         writeSaveData();
         updateSettingsUI();
       });
@@ -10364,7 +10391,7 @@
 
     // ヒントを表示し、3回点滅したら次の候補地へローテーション移動する処理
     function showNextHint() {
-      if (isLocked || isGameClear || playerHp <= 0) {
+      if (isLocked || isGameClear || playerHp <= 0 || (saveData.settings && saveData.settings.showHint === false)) {
         clearHintTimer();
         return;
       }
@@ -10407,6 +10434,7 @@
     function startHintTimer(delayMs = 8000) {
       clearHintTimer();
       if (isLocked || isGameClear || playerHp <= 0) return;
+      if (saveData.settings && saveData.settings.showHint === false) return; // ヒントOFF設定なら起動しない
 
       hintTimeoutId = setTimeout(() => {
         showNextHint();
