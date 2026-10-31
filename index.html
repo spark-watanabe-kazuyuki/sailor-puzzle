@@ -746,6 +746,18 @@
       border-radius: 10px;
       border: 2px solid #576574;
       touch-action: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    /* 手詰まり再シャッフル時の月光発光アニメーション */
+    .board-shuffle-anim {
+      animation: boardShuffleGlow 1.0s ease-in-out;
+    }
+
+    @keyframes boardShuffleGlow {
+      0% { box-shadow: 0 0 0 rgba(255, 234, 167, 0); transform: scale(1); }
+      50% { box-shadow: 0 0 35px rgba(255, 234, 167, 0.95), inset 0 0 22px rgba(255, 242, 0, 0.65); transform: scale(1.02); }
+      100% { box-shadow: 0 0 0 rgba(255, 234, 167, 0); transform: scale(1); }
     }
 
     /* 必殺技の消し方に合わせたエフェクト描画レイヤー */
@@ -3996,6 +4008,7 @@
           <button type="button" class="debug-btn accent-gold" id="dbg-story-max-upgrade">👑 全育成MAX</button>
           <button type="button" class="debug-btn" id="dbg-story-reset-save">🔄 育成＆進行リセット</button>
           <button type="button" class="debug-btn accent-gold" id="dbg-test-hint">💡 ヒントを今すぐ表示</button>
+          <button type="button" class="debug-btn accent-pink" id="dbg-test-shuffle">🌀 手詰まりシャッフルをテスト</button>
         </div>
       </div>
     </div>
@@ -7696,7 +7709,24 @@
       }
       // 育成アビリティ「🌟先制ムーンライト」習得時は開幕で★必殺技ブロックを自動生成
       spawnStartSpecialBlocksIfUpgraded();
+      ensureInitialBoardHasMoves();
       renderBoard();
+    }
+
+    // 初期盤面で有効手（1手以上揃えられる組み合わせ）が必ず存在することを保証する
+    function ensureInitialBoardHasMoves() {
+      let attempts = 0;
+      while (findAllAvailableMoves().length === 0 && attempts < 30) {
+        attempts++;
+        const r1 = Math.floor(ROWS / 2);
+        const c1 = Math.floor(COLS / 2);
+        swapBlocks(r1, c1, r1, c1 + 1);
+        const instant = findMatchGroups();
+        if (instant && instant.length > 0) {
+          swapBlocks(r1, c1, r1, c1 + 1);
+          board[r1][c1] = getRandomBlock();
+        }
+      }
     }
 
     // 敵のHP段階に応じた外見・画像の更新（フリーバトル・ストーリー共通でストーリー敵画像を優先参照）
@@ -8269,6 +8299,9 @@
           statusMessageEl.textContent = `💖 奇跡の加護：味方HPが +${healed} 回復した！`;
           await wait(350);
         }
+
+        // 手詰まり（どこも動かせない状態）を検知して自動再シャッフル
+        await checkAndHandleNoMoves();
 
         isLocked = false;
         statusMessageEl.textContent = 'ブロックを上下左右にドラッグして入れ替えよう！';
@@ -10490,6 +10523,122 @@
       currentHintMoveIndex = 0;
     }
 
+    // 手詰まり（有効手が0手）の検知と盤面再シャッフル（月の導き）
+    async function checkAndHandleNoMoves(force = false) {
+      if (!board || isGameClear || playerHp <= 0) return;
+      if (!force && gameMode === 'tutorial' && tutorialStep < 6) return;
+
+      const moves = findAllAvailableMoves();
+      if (!force && moves && moves.length > 0) {
+        return; // 有効手がある場合は何もしない
+      }
+
+      // ===== 手詰まり発生！ =====
+      isLocked = true;
+      clearHintTimer();
+
+      // 1. 手詰まり告知演出
+      statusMessageEl.textContent = '✨【NO MORE MOVES】動かせるブロックがありません！ 月の導きで再シャッフル！';
+      soundManager.playSe('special_burst');
+
+      if (clearCenterBannerEl) {
+        clearCenterBannerEl.innerHTML = '<div class="clear-center-text" style="color:#ffeaa7; border-color:#ffeaa7; text-shadow:0 0 24px #fdcb6e, 0 4px 14px #000000; box-shadow:0 0 35px rgba(254,202,87,0.7);">✨ SHUFFLE!! ✨</div>';
+        clearCenterBannerEl.classList.remove('hidden');
+      }
+      boardEl.classList.add('board-shuffle-anim');
+
+      await wait(1100);
+
+      if (clearCenterBannerEl) {
+        clearCenterBannerEl.classList.add('hidden');
+        clearCenterBannerEl.innerHTML = '<div class="clear-center-text">🎉 GAME CLEAR!! 🎉</div>';
+      }
+
+      // 2. 盤面ブロックの再配置（お邪魔で固定されていない動かせるブロックのみをシャッフル）
+      let success = false;
+      for (let attempt = 0; attempt < 80; attempt++) {
+        const movablePositions = [];
+        const movableBlocks = [];
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (canMoveBlock(r, c)) {
+              movablePositions.push({ r, c });
+              movableBlocks.push(board[r][c]);
+            }
+          }
+        }
+
+        if (movablePositions.length < 3) break;
+
+        // Fisher-Yates シャッフル
+        for (let i = movableBlocks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const temp = movableBlocks[i];
+          movableBlocks[i] = movableBlocks[j];
+          movableBlocks[j] = temp;
+        }
+
+        // 仮配置
+        for (let i = 0; i < movablePositions.length; i++) {
+          const pos = movablePositions[i];
+          board[pos.r][pos.c] = movableBlocks[i];
+        }
+
+        // シャッフル直後に既に3個以上揃っている組がないか確認（勝手に消えてしまわないように）
+        const instantMatches = findMatchGroups();
+        if (instantMatches && instantMatches.length > 0) {
+          continue;
+        }
+
+        // 有効手が1手以上あるか確認
+        const newMoves = findAllAvailableMoves();
+        if (newMoves && newMoves.length > 0) {
+          success = true;
+          break;
+        }
+      }
+
+      // 3. 極限状態（お邪魔だらけ等でシャッフルだけでは有効手が作れない場合）のフェイルセーフ
+      if (!success) {
+        const normalMovable = [];
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (canMoveBlock(r, c) && board[r][c] && !board[r][c].isSpecial) {
+              normalMovable.push({ r, c });
+            }
+          }
+        }
+
+        if (normalMovable.length > 0) {
+          // 動かせる通常ブロックの1つを★必殺技ブロックに昇華！
+          const target = normalMovable[Math.floor(Math.random() * normalMovable.length)];
+          const origType = BLOCK_TYPES.find(t => t.id === board[target.r][target.c].id) || BLOCK_TYPES[0];
+          board[target.r][target.c] = createBlock(origType, true);
+          statusMessageEl.textContent = `🌙 月の光の奇跡！ ★${origType.label}必殺技ブロックが出現して手詰まりを打開！`;
+        } else {
+          // 動かせる通常ブロックすら無い（全面氷結等）場合は、ランダムな1マスの氷結・お邪魔を浄化
+          let cleared = false;
+          for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+              if (board[r][c] && board[r][c].hazard) {
+                board[r][c].hazard = null;
+                cleared = true;
+                break;
+              }
+            }
+            if (cleared) break;
+          }
+          statusMessageEl.textContent = '🌙 月の浄化の光！ お邪魔ブロックが1つ解除されました！';
+        }
+      }
+
+      renderBoard();
+      await wait(400);
+      boardEl.classList.remove('board-shuffle-anim');
+      statusMessageEl.textContent = '✨ ブロックを再配置しました！ バトル再開！';
+    }
+
     // 盤面上で有効なスワップ（マッチ成立または必殺技発動）が可能なすべてのペアを探索
     function findAllAvailableMoves() {
       if (!board || board.length === 0 || !Array.isArray(board[0])) return [];
@@ -11022,6 +11171,15 @@
       dbgTestHintEl.addEventListener('click', () => {
         debugPanelEl.classList.add('hidden');
         startHintTimer(0);
+      });
+    }
+
+    // [デバッグ16] 🌀 手詰まり再シャッフルのテスト
+    const dbgTestShuffleEl = document.getElementById('dbg-test-shuffle');
+    if (dbgTestShuffleEl) {
+      dbgTestShuffleEl.addEventListener('click', async () => {
+        debugPanelEl.classList.add('hidden');
+        await checkAndHandleNoMoves(true);
       });
     }
 
